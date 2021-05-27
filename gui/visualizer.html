@@ -18,6 +18,14 @@
             border: 1px solid lightgray;
             display: inline-block
         }
+        .center-screen {
+            display: flex;
+            flex-direction: column;
+            justify-content: center;
+            align-items: center;
+            text-align: center;
+            min-height: 100vh;
+        }
     </style>
 </head>
 <body onload="init()">
@@ -35,6 +43,11 @@
         </div>
     </div>
     <div id="config"></div>
+</div>
+<div id="simulatingOverlay" style="width: 100vw; height: 100vh; background-color:rgba(0,0,0,0.75); position:absolute; top:0px; left:0px; display:none">
+    <div class="center-screen">
+        <h1 style="color:white;">Simulating...</h1>
+    </div>
 </div>
 </body>
 </html>

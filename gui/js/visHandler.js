@@ -2,6 +2,7 @@ let VIS_CONTAINER;
 let TOKEN_INPUT_WRAPPER;
 let CONNECTED_STATE;
 let GRAPH_WRAPPER;
+let SIM_OVERLAY;
 let DETAIL;
 
 let NODES_DATASET = new vis.DataSet();
@@ -37,6 +38,7 @@ function initDOM() {
   CONNECTED_STATE       = document.getElementById("connectedState");
   DETAIL                = document.getElementById("detail");
   VIS_CONTAINER         = document.getElementById("meshTopology")
+  SIM_OVERLAY           = document.getElementById("simulatingOverlay")
 
   EVENTBUS.on("Connected", () => {
     CONNECTED_STATE.innerHTML = "Connected!";
@@ -48,7 +50,10 @@ function initDOM() {
       loadTopology(data.data);
     }
     else if (data.type === "STATISTICS") {
+      SIM_OVERLAY.style.display = "none";
       loadStatistics(data.data);
+      NETWORK.selectNodes([UNMODIFIED_DATA[0].id]);
+      showNodeStatistics(NODES_DATASET.get()[0]);
     }
   })
   initVis();
@@ -366,6 +371,7 @@ function randomTopology() {
 }
 
 function runSimulation(seconds) {
+  SIM_OVERLAY.style.display = "block";
   CLIENT.send({
     type:"RUN_SIMULATION",
     data: seconds
