@@ -1,0 +1,40 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <title>Visualizer</title>
+    <link href="./css/vis.css" rel="stylesheet" type="text/css" />
+    <link href="./css/groups.css" rel="stylesheet" type="text/css" />
+    <script src="./js/lib/eventBus.js"></script>
+    <script src="./js/lib/colorConverters.js"></script>
+    <script src="./js/lib/vis.js"></script>
+    <script src="./js/ws.js"></script>
+    <script src="./js/util.js"></script>
+    <script src="./js/visHandler.js"></script>
+    <style>
+        #meshTopology {
+            width: 99vw;
+            height: 95vh;
+            border: 1px solid lightgray;
+            display: inline-block
+        }
+    </style>
+</head>
+<body onload="init()">
+<div id="connectedState">Disconnected...</div>
+<input type="button" value="Run 100s" style="width:200px" onclick="runSimulation(100)"/>
+<!--<input type="button" value="Add Hub" style="width:200px" onclick="addHub()"/>-->
+<!--<input type="button" value="Add Crownstone" style="width:200px" onclick="addCrownstone()"/>-->
+<!--<input type="button" value="Add Asset" style="width:200px" onclick="addAsset()"/>-->
+<!--<input type="button" value="Random Topology" style="width:200px" onclick="randomTopology()"/>-->
+<div id="networkContainer" style="display:block">
+    <div style="position:relative;">
+        <div id="meshTopology"></div>
+        <div style="position:absolute; top:10px; left:10px; pointer-events: none;">
+            <div id="detail"></div>
+        </div>
+    </div>
+    <div id="config"></div>
+</div>
+</body>
+</html>

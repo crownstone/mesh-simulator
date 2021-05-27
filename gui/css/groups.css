@@ -1,0 +1,277 @@
+.connected {
+    fill: #009ff2;
+    fill-opacity:0.5 !important;
+    stroke-width:2px;
+    stroke: #0067b3;
+}
+
+
+.sync {
+    fill: #f2232c;
+    fill-opacity:0.2 !important;
+    stroke-width:2px;
+    stroke: #b31c1a;
+}
+
+.scan {
+    fill: #f247df;
+    fill-opacity:0.2 !important;
+    stroke-width:2px;
+    stroke: #0067b3;
+}
+
+.away {
+    fill: #f2232c;
+    fill-opacity:0.2 !important;
+    stroke-width:2px;
+    stroke: #b31c1a;
+}
+
+.present {
+    fill: #77f235;
+    fill-opacity:0.2 !important;
+    stroke-width:2px;
+    stroke: #60b349;
+}
+
+.unknown {
+    fill: #a7a2a7;
+    fill-opacity:0.4 !important;
+    stroke-width:2px;
+    stroke: #a7a2a7;
+}
+
+.SetupAdvertisement {
+    fill: #77f235;
+    fill-opacity:0.6 !important;
+    stroke-width:2px;
+    stroke: #60b349;
+}
+
+.verifiedAdvertisementData {
+    fill: #f29e20;
+    fill-opacity:0.6 !important;
+    stroke-width:2px;
+    stroke: #f29e20;
+}
+
+.terminated {
+    fill: #200001;
+    fill-opacity:0.6 !important;
+    stroke-width:2px;
+    stroke: #200001;
+}
+
+
+.foreground {
+    fill: #77f235;
+    fill-opacity:0.6 !important;
+    stroke-width:2px;
+    stroke: #60b349;
+}
+
+.background {
+    fill: #f29e20;
+    fill-opacity:0.1 !important;
+    stroke-width:1px;
+    stroke: #f29e20;
+}
+
+.terminated {
+    fill: #200001;
+    fill-opacity:0.6 !important;
+    stroke-width:2px;
+    stroke: #200001;
+}
+
+.resign {
+    fill: #940e00;
+    fill-opacity:0.6 !important;
+    stroke-width:2px;
+    stroke: #940e00;
+}
+
+.iBeacon {
+    fill: #4f98d1;
+    stroke: #4f98d1;
+}
+.beacon1 {
+    fill: #4f98d1;
+    stroke-width:2px;
+    stroke: #4f98d1;
+}
+.beacon2 {
+    fill: #2bd135;
+    stroke-width:2px;
+    stroke: #2bd135;
+}
+.beacon3 {
+    fill: #ffed08;
+    stroke-width:2px;
+    stroke: #ffed08;
+}
+.beacon4 {
+    fill: #ff9c00;
+    stroke-width:2px;
+    stroke: #ff9c00;
+}
+.beacon5 {
+    fill: #ff3e03;
+    stroke-width:2px;
+    stroke: #ff3e03;
+}
+.beacon6 {
+    fill: #a30004;
+    stroke-width:2px;
+    stroke: #a30004;
+}
+.advertisement {
+    fill: #a732d1;
+    fill-opacity:0.0;
+    stroke-width:2px;
+    stroke: #a732d1;
+}
+
+.setup {
+    fill: #00ff08;
+    fill-opacity:0.0;
+    stroke-width:2px;
+    stroke: #00ff08;
+}
+
+.sync {
+    fill: #ff00f8;
+    fill-opacity:0.0;
+    stroke-width:2px;
+    stroke: #ff00f8;
+}
+.keepalive {
+    fill: #63d3ff;
+    fill-opacity:0.0;
+    stroke-width:2px;
+    stroke: #63d3ff;
+}
+.keepAliveApp {
+    fill: #31687e;
+    fill-opacity:0.0;
+    stroke-width:2px;
+    stroke: #31687e;
+}
+.appOther {
+    fill: #5a727e;
+    fill-opacity:0.0;
+    stroke-width:2px;
+    stroke: #5a727e;
+}
+.bluenetOther {
+    fill: #d80014;
+    fill-opacity:0.0;
+    stroke-width:2px;
+    stroke: #d80014;
+}
+.ibeaconApp {
+    fill: #3df4ff;
+    fill-opacity:0.0;
+    stroke-width:2px;
+    stroke: #5bd4ff;
+}
+.advertisementApp {
+    fill: #ffd234;
+    fill-opacity:0.0;
+    stroke-width:2px;
+    stroke: #a3d83e;
+}
+.advertisementAppOFF {
+    fill: #ff001c;
+    fill-opacity:0.0;
+    stroke-width:2px;
+    stroke: #ff001c;
+}
+.appHazError {
+    fill: #ff001c;
+    fill-opacity:0.0;
+    stroke-width:2px;
+    stroke: #ff001c;
+}
+.BatchCommandHandlerHazERROR {
+    fill: #ff770e;
+    fill-opacity:0.0;
+    stroke-width:2px;
+    stroke: #ff770e;
+}
+.cloudStoneUpdate {
+    fill: #ffaa33;
+    fill-opacity:0.0;
+    stroke-width:2px;
+    stroke: #ffaa33;
+}
+.cloudStoneToken {
+    fill: #37ffa1;
+    fill-opacity:0.0;
+    stroke-width:2px;
+    stroke: #37ffa1;
+}
+.temperature {
+    fill: #37ffa1;
+    fill-opacity:0.0;
+    stroke-width:2px;
+    stroke: #37ffa1;
+}
+
+.exitSphere {
+    fill: #d80014;
+    fill-opacity:0.0;
+    stroke-width:2px;
+    stroke: #d80014;
+}
+
+.enterSphere {
+    fill: #15ff00;
+    fill-opacity:0.0;
+}
+
+div.dataContainer {
+    width:100%;
+    font-size: 12px;
+
+}
+
+div.dataContainer.bluenet {
+    color:#fff;
+    background-color:#222;
+}
+
+div.dataContainer.native {
+    color:#fff;
+    background-color: #304376;
+}
+
+.DisableStone {
+    fill: #200001;
+    fill-opacity:0.6 !important;
+    stroke-width:2px;
+    stroke: #200001;
+}
+
+.raw {
+    fill: #00ff08;
+    fill-opacity:0.0;
+    stroke-width:2px;
+    stroke: #00ff08;
+}
+
+
+.rawEnergyUsageGraphStyle {
+    fill: #a2cf34;
+    fill-opacity:0;
+    stroke-width:2px;
+    stroke: #a2cf34;
+}
+
+.rawCorrectedEnergyUsageGraphStyle {
+    fill: #3a99ff;
+    fill-opacity:0;
+    stroke-width:2px;
+    stroke: #3a99ff;
+}
+
