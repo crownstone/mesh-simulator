@@ -9,8 +9,11 @@ let NODES_DATASET = new vis.DataSet();
 let EDGES_DATASET = new vis.DataSet();
 let NETWORK;
 let LOCATION_DATA = {};
+let SHOWING_NODE = null;
+let COMPARE_NODE = null;
 
 let UNMODIFIED_DATA = [];
+
 
 const optionsKey = "VISJS_NETWORK_OPTIONS_OVERRIDE";
 
@@ -28,7 +31,7 @@ let GROUP_COLORS = [
   colors.darkPurple,
   colors.blue3,
   colors.darkRed,
-]
+];
 
 let CROWNSTONE_ID = 1;
 let ASSET_ID = 500;
@@ -52,7 +55,7 @@ function initDOM() {
     else if (data.type === "STATISTICS") {
       SIM_OVERLAY.style.display = "none";
       loadStatistics(data.data);
-      NETWORK.selectNodes([UNMODIFIED_DATA[0].id]);
+      NETWORK.selectNodes([UNMODIFIED_DATA.nodes[0].id]);
       showNodeStatistics(NODES_DATASET.get()[0]);
     }
     else if (data.type === "START_SIMULATION") {
@@ -99,6 +102,7 @@ function initVis() {
       }
     },
     physics: {
+      stabilization: true,
       barnesHut: {
         gravitationalConstant: -10000,
         springLength: 130,
@@ -123,12 +127,32 @@ function initVis() {
     }
     else if (data.nodes.length == 0 && data.edges.length == 0) {
       DETAIL.innerHTML = '';
-      NODES_DATASET.update(UNMODIFIED_DATA);
+      console.log(UNMODIFIED_DATA)
+      NODES_DATASET.update(UNMODIFIED_DATA.nodes);
+      EDGES_DATASET.clear();
+      EDGES_DATASET.add(UNMODIFIED_DATA.edges);
+      SHOWING_NODE = null;
+      COMPARE_NODE = null;
     }
     else {
-      // show node summary
       let nodeData = NODES_DATASET.get(data.nodes[0])
-      showNodeStatistics(nodeData);
+      if (SHOWING_NODE && SHOWING_NODE.id !== nodeData.id) {
+        if (COMPARE_NODE && COMPARE_NODE.id === nodeData.id) {
+          // deselect the compare node.
+          NETWORK.selectNodes([SHOWING_NODE.id]);
+          COMPARE_NODE = null;
+          showNodeStatistics(SHOWING_NODE);
+          return;
+        }
+
+
+        NETWORK.selectNodes([SHOWING_NODE.id, nodeData.id])
+        showNodePath(nodeData);
+      }
+      else {
+        // show node summary
+        showNodeStatistics(nodeData);
+      }
     }
   })
 
@@ -180,7 +204,7 @@ function initVis() {
  * @param nodeData
  */
 function showNodeStatistics(nodeData) {
-
+  SHOWING_NODE = nodeData;
   /** received advertisements:
    *    mac, x out of y (percentage)
    *  sent mesh broadcasts: number (unique)
@@ -188,7 +212,8 @@ function showNodeStatistics(nodeData) {
    *  relayed mesh messages: number (unique)
    *
    */
-  NODES_DATASET.update(UNMODIFIED_DATA);
+  NODES_DATASET.update(UNMODIFIED_DATA.nodes);
+  EDGES_DATASET.update(UNMODIFIED_DATA.edges);
   let statistics = nodeData.statistics;
   if (!statistics) {
     DETAIL.innerHTML = "No statistics data available on this node."
@@ -219,7 +244,7 @@ function showNodeStatistics(nodeData) {
   for (let nodeItem of nodeDetails) {
     for (let nodeId in nodeUpdates) {
       if (nodeItem.id === nodeId) {
-        nodeItem.label = nodeUpdates[nodeId];
+        nodeItem.label = nodeUpdates[nodeId] + "\nCrownstoneId:" + nodeItem.crownstoneId;
         break;
       }
     }
@@ -239,6 +264,66 @@ function showNodeStatistics(nodeData) {
     `<tr><td>mesh broadcasts relayed:</td><td colspan="2">${statistics.meshBroadcasts.relayed.unique}</td></tr>` +
     `<tr><td>mesh unneccesary duplicates sent:</td><td colspan="2">${statistics.meshBroadcasts.sentDuplicates.count}</td></tr>`
 
+}
+
+
+function showNodePath(otherNode) {
+  COMPARE_NODE = otherNode;
+
+  let statistics = SHOWING_NODE.statistics;
+  if (!statistics) { return }
+  let meshRecevied = statistics.meshBroadcasts.received.senders[otherNode.id]
+  let total = meshRecevied.count;
+  let pathData = meshRecevied.paths;
+  let paths = Object.keys(pathData);
+  
+  let edges = UNMODIFIED_DATA.edges;
+  function findEdge(a,b) {
+    for (let edge of edges) {
+      if (edge.from === a && edge.to === b) {
+        return edge;
+      }
+      if (edge.to === a && edge.from === b) {
+        return edge;
+      }
+    }
+  }
+
+  let edgeMap = {};
+  for (let edge of edges) {
+    edge = {...edge, color: 'rgba(0,0,0,0.25)'}
+    edgeMap[edge.id] = edge;
+  }
+  let nodes = []
+  for (let node of UNMODIFIED_DATA.nodes) {
+    if (node.id !== SHOWING_NODE.id && node.id !== otherNode.id) {
+      nodes.push({...node, color: 'rgb(200,200,200)'})
+    }
+  }
+
+  let edgeIds = [];
+  for (let path of paths) {
+    let arr = path.split("__");
+    let ratio = pathData[path].count / total;
+    for (let i = 1; i < arr.length; i++) {
+      let edge = findEdge(arr[i-1],arr[i]);
+      let arrow = {arrows: {}}
+      if (edge.to === arr[i]) {
+        arrow.arrows.to = true;
+      }
+      else {
+        arrow.arrows.from = true;
+      }
+
+      edge = {...edge, ...getEdgeSettings(ratio, (100*ratio).toFixed(2) + " %", 0, 1), ...arrow}
+      edgeMap[edge.id] = edge;
+      edgeIds.push(edge.id);
+
+    }
+  }
+  NETWORK.selectEdges(edgeIds);
+  EDGES_DATASET.update(Object.values(edgeMap))
+  NODES_DATASET.update(nodes)
 }
 
 function loadTopology(data) {
@@ -291,8 +376,8 @@ function loadTopology(data) {
   EDGES_DATASET.clear();
   NODES_DATASET.add(nodes);
   EDGES_DATASET.add(edges);
-
-  UNMODIFIED_DATA = nodes;
+  NETWORK.stabilize(300)
+  UNMODIFIED_DATA = {nodes: nodes, edges: edges};
 }
 
 
@@ -302,43 +387,74 @@ function loadStatistics(data) {
   for (let node of nodes) {
     node.statistics = data[node.id]
   }
+  UNMODIFIED_DATA.nodes = nodes;
   NODES_DATASET.update(nodes)
 }
 
 
 
-function getEdgeSettings(rssi) {
-  let label = rssi;
+function getEdgeSettings(ratio, label, rangeMin, rangeMax) {
   // item list for the 6 different phases. They fade to each other.
-  let bounds = [-70, -76, -83, -92];
+  let range = (rangeMax - rangeMin)
+  let bounds = [];
+  for (let i = 1; i < 5; i++) {
+    bounds.push((range/5)*i);
+  }
+  bounds.reverse();
 
   let baseWidth = 10;
-  if (rssi > bounds[0]) {
-    // 0 .. -59
-    return {offset: 0, color: colors.green.hex, width: baseWidth, label: label}
+  if (ratio > bounds[0]) {
+    return {color: colors.green.hex, width: baseWidth, label: label}
   }
-  else if (rssi > bounds[1]) {
-    // -60 .. -69
-    let factor = 1-Math.abs((rssi - bounds[0])/(bounds[0]-bounds[1]));
-    return {offset: 0, color: colors.green.blend(colors.blue2, 1-factor).hex, width: baseWidth*0.4 + baseWidth*0.6*factor, label: label}
+  else if (ratio > bounds[1]) {
+    let factor = 1-Math.abs((ratio - bounds[0])/(bounds[0]-bounds[1]));
+    return {color: colors.green.blend(colors.blue2, 1-factor).hex, width: baseWidth*0.4 + baseWidth*0.6*factor, label: label}
   }
-  else if (rssi > bounds[2]) {
-    // -70 .. -79
-    let factor = 1-Math.abs((rssi - bounds[1])/(bounds[1]-bounds[2]));
-    return {offset: 0, color: colors.blue2.blend(colors.purple, 1-factor).hex, width: baseWidth*0.4*0.4 + baseWidth*0.4*0.6*factor, label: label}
+  else if (ratio > bounds[2]) {
+    let factor = 1-Math.abs((ratio - bounds[1])/(bounds[1]-bounds[2]));
+    return {color: colors.blue2.blend(colors.purple, 1-factor).hex, width: baseWidth*0.4*0.4 + baseWidth*0.4*0.6*factor, label: label}
   }
-  else if (rssi > bounds[3]) {
-    let factor = 1-Math.abs((rssi - bounds[2])/(bounds[2]-bounds[3]));
-    // -81 .. -85
-    return {offset: 0, color: colors.purple.blend(colors.red, 1-factor).hex, width: baseWidth*0.4*0.4, label: label}
+  else if (ratio > bounds[3]) {
+    let factor = 1-Math.abs((ratio - bounds[2])/(bounds[2]-bounds[3]));
+    return {color: colors.purple.blend(colors.red, 1-factor).hex, width: baseWidth*0.4*0.4, label: label}
 
   }
   else {
-    // -95 .. -120
-    return {offset: 0, color: colors.darkRed.hex, width: baseWidth*0.4*0.4, opacity: 0.6, dashArray:"8, 12", label: label}
-
+    return {color: colors.darkRed.hex, width: baseWidth*0.4*0.4, opacity: 0.6, dashArray:"8, 12", label: label}
   }
 }
+
+// function getEdgeSettings(rssi) {
+//   let label = rssi;
+//   // item list for the 6 different phases. They fade to each other.
+//   let bounds = [-70, -76, -83, -92];
+//
+//   let baseWidth = 10;
+//   if (rssi > bounds[0]) {
+//     // 0 .. -59
+//     return {color: colors.green.hex, width: baseWidth, label: label}
+//   }
+//   else if (rssi > bounds[1]) {
+//     // -60 .. -69
+//     let factor = 1-Math.abs((rssi - bounds[0])/(bounds[0]-bounds[1]));
+//     return {color: colors.green.blend(colors.blue2, 1-factor).hex, width: baseWidth*0.4 + baseWidth*0.6*factor, label: label}
+//   }
+//   else if (rssi > bounds[2]) {
+//     // -70 .. -79
+//     let factor = 1-Math.abs((rssi - bounds[1])/(bounds[1]-bounds[2]));
+//     return {color: colors.blue2.blend(colors.purple, 1-factor).hex, width: baseWidth*0.4*0.4 + baseWidth*0.4*0.6*factor, label: label}
+//   }
+//   else if (rssi > bounds[3]) {
+//     let factor = 1-Math.abs((rssi - bounds[2])/(bounds[2]-bounds[3]));
+//     // -81 .. -85
+//     return {color: colors.purple.blend(colors.red, 1-factor).hex, width: baseWidth*0.4*0.4, label: label}
+//
+//   }
+//   else {
+//     // -95 .. -120
+//     return {color: colors.darkRed.hex, width: baseWidth*0.4*0.4, opacity: 0.6, dashArray:"8, 12", label: label}
+//   }
+// }
 
 
 function addHub() {

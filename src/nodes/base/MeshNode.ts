@@ -29,6 +29,7 @@ export class MeshNode {
   cleanup() {}
 
   stop() {
+    this.handled_messages = {};
     this.cleanup();
     for (let cleanupMethod of this.cleanupMethods) {
       cleanupMethod();
@@ -89,6 +90,7 @@ export class MeshNode {
       id: Util.getUUID(),
       relayId: null,
       data: data,
+      path: [],
     }
     return wrappedMessage;
   }

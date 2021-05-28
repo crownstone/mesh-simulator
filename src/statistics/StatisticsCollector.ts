@@ -80,9 +80,14 @@ export class StatisticsCollector {
 
     let sourceAddress = this.nodeIdMap[data.source];
     if (item.meshBroadcasts.received.senders[sourceAddress] === undefined) {
-      item.meshBroadcasts.received.senders[sourceAddress] = {count: 0, outOf: null};
+      item.meshBroadcasts.received.senders[sourceAddress] = {count: 0, outOf: null, paths: {}};
     }
     item.meshBroadcasts.received.senders[sourceAddress].count++;
+    let path = data.path.join("__");
+    if (item.meshBroadcasts.received.senders[sourceAddress].paths[path] === undefined) {
+      item.meshBroadcasts.received.senders[sourceAddress].paths[path] = { count: 0}
+    }
+    item.meshBroadcasts.received.senders[sourceAddress].paths[path].count++;
   }
 
 
@@ -162,7 +167,7 @@ export class StatisticsCollector {
         let senderNode = this.nodes[otherAddress];
         let sentMeshBroadcasts = senderNode.meshBroadcasts.sent.unique;
         if (mesh.received.senders[otherAddress] === undefined) {
-          mesh.received.senders[otherAddress] = { count: 0, outOf: 0}
+          mesh.received.senders[otherAddress] = { count: 0, outOf: 0, paths: {}}
         }
         mesh.received.senders[otherAddress].outOf = sentMeshBroadcasts;
       }

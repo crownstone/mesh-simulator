@@ -55,6 +55,7 @@ interface MeshBroadcastReceivedEvent {
   success: boolean,
   relayId: string,
   messageId: string,
+  path: macAddress[],
   ttl: number,
   repeats: number
 }
@@ -72,7 +73,7 @@ interface StatisticsData {
       sent:    { unique: number, count: number, receivers: StatisticsSuccessRate},
       relayed: { unique: number, count: number, receivers: StatisticsSuccessRate},
 
-      received: { senders: StatisticsReceiveRate}
+      received: { senders: StatisticsReceiveData }
       sentDuplicates: { count: number, receivers: { [macAddress: string]: string[] }},
       blocked: { receivers: StatisticsSuccessRate}
     }
@@ -89,6 +90,13 @@ interface StatisticsReceiveRate {
   [macAddress:string] : {
     count: number,
     outOf: number,
+  }
+}
+interface StatisticsReceiveData {
+  [macAddress:string] : {
+    count: number,
+    outOf: number,
+    paths: {[pathList : string] : { count: number }}
   }
 }
 interface StatisticsDuplicateRate {

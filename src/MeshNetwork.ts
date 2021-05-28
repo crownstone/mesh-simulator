@@ -29,6 +29,9 @@ export class MeshNetwork {
       this.timer.setTimeout(() => {
         console.log("Simulation completed.")
         this.timer.pause();
+        for (let nodeId in this.nodes) {
+          this.nodes[nodeId].stop();
+        }
         resolve();
       }, seconds*1000);
     })
@@ -72,6 +75,8 @@ export class MeshNetwork {
       throw "NO_MAC_ADDRESS";
     }
     let connections = this.connectionMap[senderMacAddress] ?? [];
+    content = {...content, path: [...content.path]};
+    content.path.push(senderMacAddress);
     for (let connection of connections) {
       if (this.nodes[connection.to].isCrownstone) {
         for (let i = 0; i <= repeats; i++) {
@@ -178,6 +183,7 @@ export class MeshNetwork {
             receiver: to,
             relayId: content.relayId,
             messageId: content.id,
+            path: [...content.path, to],
             ttl, repeats
           });
           this.nodes[to].handleMeshMessage(source, sentBy, content.data, rssiValue, ttl, repeats);
@@ -206,6 +212,8 @@ export class MeshNetwork {
       }
     }
     content.relayId = Util.getUUID();
+    content.path = [...content.path];
+    content.path.push(senderMacAddress);
     for (let connection of connections) {
       if (this.nodes[connection.to].isCrownstone) {
         for (let i = 0; i <= repeats; i++) {
