@@ -42,7 +42,7 @@ export class MeshSimulator {
     }
   }
 
-  allowNewTopology(path) {
+  allowNewTopology(path: string) {
     this.newTopologyPath = path;
   }
 
@@ -53,6 +53,8 @@ export class MeshSimulator {
       if (this.newTopologyPath !== null) {
         fs.writeFileSync(this.newTopologyPath, JSON.stringify(message.data, undefined, 4));
         this.setTopologyFromFile(this.newTopologyPath, this.inputClassMap);
+        await this.run(10);
+        this.server.send({type:"STATISTICS", data: this.statistics.nodes})
       }
     }
     else if (message.type == "GET_TOPOLOGY") {
@@ -60,7 +62,7 @@ export class MeshSimulator {
         nodes: [],
         edges: []
       };
-      for (let node of this.topology.nodes)               { data.nodes.push({id: node.macAddress, cid: node.crownstoneId, type: node.type}); }
+      for (let node of this.topology.nodes)               { data.nodes.push({id: node.macAddress, cid: node.crownstoneId, type: node.type, intervalMs: node.intervalMs}); }
       for (let connection of this.topology.connections)   { data.edges.push(connection); }
       this.server.send({type:"TOPOLOGY", data: data});
     }
@@ -100,8 +102,9 @@ export class MeshSimulator {
     for (let node of topology.nodes) {
       if (node.type !== "ASSET") {
         let constructor = classMap[node.type] ?? DEFAULT_CLASS_MAP[node.type];
-        let item = new constructor(node.id, node.macAddress ?? Util.getMacAddress());
-        idMap[node.id] = item.macAddress;
+        let id = node.crownstoneId ?? node.id;
+        let item = new constructor(id, node.macAddress ?? Util.getMacAddress());
+        idMap[id] = item.macAddress;
         nodes.push(item);
       }
     }

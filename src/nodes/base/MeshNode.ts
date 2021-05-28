@@ -6,7 +6,7 @@ type callback = () => void;
 export class MeshNode {
 
   type: string;
-  crownstoneId: string = null;
+  crownstoneId: number = null;
   macAddress: macAddress;
   mesh: MeshNetwork;
   isCrownstone = true;
@@ -56,7 +56,7 @@ export class MeshNode {
   }
 
 
-  broadcastBurst(data: message, ttl: number, repeats: number = 5) {
+  broadcastBurst(data: message, ttl: number, repeats: number = 4) {
     if (this.mesh) {
       let message = this._wrapMessage(data);
       for (let i = 0; i <= repeats; i++) {

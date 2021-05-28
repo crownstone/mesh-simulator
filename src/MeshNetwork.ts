@@ -7,7 +7,7 @@ let CHANNELS = [37,38,39];
 
 export class MeshNetwork {
 
-  nodeIdMap : Record<crownstoneId, macAddress> = {}
+  nodeIdMap : {[crownstoneId: string]: macAddress} = {}
   nodes : Record<macAddress, MeshNode> = {}
   connections = {};
   connectionMap = {};

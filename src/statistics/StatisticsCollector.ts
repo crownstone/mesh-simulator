@@ -5,7 +5,7 @@ import {MeshNode} from "../nodes/base/MeshNode";
 export class StatisticsCollector {
 
   nodeReference : Record<macAddress, MeshNode> = {}
-  nodeIdMap : Record<macAddress, crownstoneId> = {}
+  nodeIdMap : {[crownstoneId: string]: macAddress} = {}
   nodes : StatisticsData = {};
   messageHistory = {};
   relayDuplicateCheck = {};
@@ -23,7 +23,7 @@ export class StatisticsCollector {
     this.subscriptions = [];
   }
 
-  initialize(nodeIdMap: Record<macAddress, crownstoneId>, nodeReference: Record<macAddress, MeshNode>) {
+  initialize(nodeIdMap: {[crownstoneId: string]: macAddress} , nodeReference: Record<macAddress, MeshNode>) {
     this.nodeIdMap = nodeIdMap;
     this.nodeReference = nodeReference;
     for (let nodeId in this.nodeReference) {

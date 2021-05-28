@@ -1,6 +1,4 @@
-interface message {
-
-}
+type message = any;
 
 type MessageType = "MESH_BROADCAST" | "ADVERTISEMENT"
 

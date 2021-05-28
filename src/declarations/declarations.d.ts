@@ -6,7 +6,7 @@ interface PromiseContainer<T> {
 
 
 type macAddress = string;
-type crownstoneId = string;
+type crownstoneId = number;
 
 type PromiseCallback = (any) => Promise<any>
 type callback = () => void;
@@ -64,7 +64,7 @@ interface MeshBroadcastReceivedEvent {
 interface StatisticsData {
   [macAddress:string] : {
     type: string,
-    crownstoneId: string,
+    crownstoneId: number,
     advertisements: {
       sent: { unique: number, count: number, receivers: StatisticsSuccessRate },
       received: { senders: StatisticsReceiveRate },

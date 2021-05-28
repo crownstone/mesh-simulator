@@ -4,6 +4,7 @@ let CONNECTED_STATE;
 let GRAPH_WRAPPER;
 let SIM_OVERLAY;
 let DETAIL;
+let INDIVIDUAL_PATH_VISUALIZATION = true;
 let SHOW_ASSETS = false;
 
 let TMP_ASSET_STORE = [];
@@ -15,7 +16,7 @@ let SHOWING_NODE = null;
 let COMPARE_NODE = null;
 
 let UNMODIFIED_DATA = [];
-
+let DRAG_FIXED_CACHE = false;
 
 const optionsKey = "VISJS_NETWORK_OPTIONS_OVERRIDE";
 
@@ -102,6 +103,9 @@ function initVis() {
         forceDirection: 'none'
       }
     },
+    layout: {
+      randomSeed: 221,
+    },
     physics: {
       stabilization: true,
       barnesHut: {
@@ -109,7 +113,7 @@ function initVis() {
         springLength: 130,
         springConstant: 0.02
       },
-      minVelocity: 0.75
+      minVelocity: 0.75,
     },
   };
 
@@ -122,7 +126,6 @@ function initVis() {
       let edge = {...EDGES_DATASET.get(properties.items[0])};
       let fromNode = NODES_DATASET.get(edge.from);
       let toNode   = NODES_DATASET.get(edge.to);
-      console.log(edge, fromNode, toNode)
       if (fromNode.group === 'ASSET' || toNode.group === "ASSET") {
         edge.physics = false;
         EDGES_DATASET.update(edge)
@@ -130,6 +133,26 @@ function initVis() {
 
       UNMODIFIED_DATA.edges.push(edge);
       updateTopology()
+    }
+  })
+
+  NETWORK.on("dragStart", (data) => {
+    if (data.nodes.length === 1) {
+      let node = NODES_DATASET.get(data.nodes[0]);
+      DRAG_FIXED_CACHE = node.fixed;
+      if (node.fixed) {
+        node.fixed = false
+        NODES_DATASET.update(node);
+      }
+    }
+  })
+  NETWORK.on("dragEnd", (data) => {
+    if (data.nodes.length === 1) {
+      let node = NODES_DATASET.get(data.nodes[0]);
+      if (node.fixed !== DRAG_FIXED_CACHE) {
+        node.fixed = DRAG_FIXED_CACHE
+        NODES_DATASET.update(node);
+      }
     }
   })
 
@@ -157,13 +180,14 @@ function initVis() {
       }
     }
     else {
-      DETAIL.innerHTML = '';
-      console.log(UNMODIFIED_DATA)
-      NODES_DATASET.update(UNMODIFIED_DATA.nodes);
-      EDGES_DATASET.clear();
-      EDGES_DATASET.add(UNMODIFIED_DATA.edges);
-      SHOWING_NODE = null;
-      COMPARE_NODE = null;
+      if (SHOWING_NODE !== null || COMPARE_NODE !== null) {
+        DETAIL.innerHTML = '';
+        NODES_DATASET.update(UNMODIFIED_DATA.nodes);
+        EDGES_DATASET.clear();
+        EDGES_DATASET.add(UNMODIFIED_DATA.edges);
+        SHOWING_NODE = null;
+        COMPARE_NODE = null;
+      }
     }
   })
 
@@ -289,7 +313,6 @@ function showNodePath(otherNode) {
   let paths = Object.keys(pathData);
   
   let edges = EDGES_DATASET.get();
-  console.log(edges, UNMODIFIED_DATA.edges)
   function findEdge(a,b) {
     for (let edge of edges) {
       if (edge.from === a && edge.to === b) {
@@ -303,17 +326,21 @@ function showNodePath(otherNode) {
 
   let edgeMap = {};
   for (let edge of edges) {
-    edge = {...edge, color: 'rgba(0,0,0,0.25)'}
+    edge = {...edge, color: 'rgba(0,0,0,0.25)', label: ''}
     edgeMap[edge.id] = edge;
   }
-  let nodes = []
+  let nodes = [];
+  let nodeIdMap = {}
   for (let node of UNMODIFIED_DATA.nodes) {
+    nodeIdMap[node.id] = node.crownstoneId;
+    let alteredNode = {...node, fixed: true}
     if (node.id !== SHOWING_NODE.id && node.id !== otherNode.id) {
-      nodes.push({...node, color: 'rgb(200,200,200)'})
+      nodes.push({...alteredNode, color: 'rgb(200,200,200)'})
     }
+    nodes.push(alteredNode)
   }
 
-  let edgeIds = [];
+  let edgesModified = {};
   for (let path of paths) {
     let arr = path.split("__");
     let ratio = pathData[path].count / total;
@@ -329,15 +356,37 @@ function showNodePath(otherNode) {
         arrow.arrows.from = true;
       }
 
-      edge = {...edge, ...getEdgeSettings(ratio, (100*ratio).toFixed(2) + " %", 0, 1), ...arrow}
-      edgeMap[edge.id] = edge;
-      edgeIds.push(edge.id);
+
+      // this will draw a set of edges for each path;
+      if (INDIVIDUAL_PATH_VISUALIZATION) {
+        let newEdge = {...edge, ...getEdgeSettings(ratio, (100 * ratio).toFixed(2) + " %", 0, 1), ...arrow};
+        if (edgesModified[edge.id] === undefined) {
+          edge = newEdge;
+          edgesModified[edge.id] = true;
+          edgeMap[edge.id] = edge;
+        }
+        else {
+          newEdge.id = Math.floor(Math.random() * 1e9).toString(36);
+          edgeMap[newEdge.id] = newEdge;
+        }
+      }
+      else {
+        if (edgesModified[edge.id] === undefined) {
+          edgesModified[edge.id] = ratio;
+        }
+        else {
+          edgesModified[edge.id] += ratio;
+        }
+        let usedRatio = edgesModified[edge.id]
+        edge = {...edge, ...getEdgeSettings(usedRatio, (100 * usedRatio).toFixed(2) + " %", 0, 1), ...arrow};
+        edgeMap[edge.id] = edge;
+      }
 
     }
   }
-  NETWORK.selectEdges(edgeIds);
   EDGES_DATASET.update(Object.values(edgeMap))
   NODES_DATASET.update(nodes)
+  NETWORK.selectEdges(Object.keys(edgeMap));
 }
 
 function loadTopology(data) {
@@ -365,32 +414,34 @@ function loadTopology(data) {
   TMP_ASSET_STORE = []
 
   for (let edge of data.edges) {
-    edges.push({...edge, ...getEdgeSettingsRssi(edge.rssi)});
-    if (nodeMap[edge.from] === "ASSET" && nodeMap[edge.to] !== "ASSET") {
-      if (nodeMapSeeAssets[edge.to] === undefined) { nodeMapSeeAssets[edge.to] = 0; }
-      nodeMapSeeAssets[edge.to]++;
-      edge.physics = false;
+    let newEdge = {...edge, ...getEdgeSettingsRssi(edge.rssi), physics: true}
+    if (nodeMap[newEdge.from] === "ASSET" && nodeMap[newEdge.to] !== "ASSET") {
+      if (nodeMapSeeAssets[newEdge.to] === undefined) { nodeMapSeeAssets[newEdge.to] = 0; }
+      nodeMapSeeAssets[newEdge.to]++;
+      newEdge.physics = false;
+      newEdge.smooth = false;
+      newEdge.label = '';
+      newEdge.color = "rgba(0,0,0,0.20)"
     }
-    if (nodeMap[edge.to] === "ASSET" && nodeMap[edge.from] !== "ASSET") {
-      if (nodeMapSeeAssets[edge.from] === undefined) { nodeMapSeeAssets[edge.from] = 0; }
-      nodeMapSeeAssets[edge.from]++;
-      edge.physics = false;
-
-      // turn them around so the edge always points from asset to crownstone
-      let tmp = edge.from;
-      edge.from = edge.to;
-      edge.to = tmp;
+    if (nodeMap[newEdge.to] === "ASSET" && nodeMap[newEdge.from] !== "ASSET") {
+      if (nodeMapSeeAssets[newEdge.from] === undefined) { nodeMapSeeAssets[newEdge.from] = 0; }
+      nodeMapSeeAssets[newEdge.from]++;
+      newEdge.physics = false;
+      newEdge.smooth = false;
+      newEdge.label = '';
+      newEdge.color = "rgba(0,0,0,0.20)"
     }
+    edges.push(newEdge);
   }
 
   for (let node of data.nodes) {
     if (node.type !== 'ASSET') {
       let visibleAssets = nodeMapSeeAssets[node.id];
       if (visibleAssets > 0) {
-        nodes.push({id: node.id, label: node.cid+":["+visibleAssets+"]",  type: node.type, crownstoneId: node.cid, visibleAssets, group: node.type + ':' + visibleAssets, shape: shapeMap[node.type], mass: massMap[node.type]})
+        nodes.push({id: node.id, label: node.cid+":["+visibleAssets+"]",  type: node.type, crownstoneId: node.cid, visibleAssets, group: node.type + ':' + visibleAssets, shape: shapeMap[node.type], mass: massMap[node.type], fixed: false})
       }
       else {
-        nodes.push({id: node.id, label: node.cid+": No assets in range",  type: node.type, crownstoneId: node.cid, visibleAssets, group: node.type + ':0', shape: shapeMap[node.type], mass: massMap[node.type]})
+        nodes.push({id: node.id, label: node.cid+": [0 assets in range]",  type: node.type, crownstoneId: node.cid, visibleAssets, group: node.type + ':0', shape: shapeMap[node.type], mass: massMap[node.type], fixed: false})
       }
     }
     else {
@@ -544,7 +595,8 @@ function getEdgeSettingsRssi(rssi = -80) {
 function addCrownstone() {
   let id = 0;
   for (let node of UNMODIFIED_DATA.nodes) {
-    if (node.type !== "ASSET") {
+    if (node.type !== "ASSET" && node.crownstoneId) {
+      console.log("Check", id, node.crownstoneId)
       id = Math.max(id, Number(node.crownstoneId));
     }
   }
@@ -591,6 +643,15 @@ function toggleAssets() {
       }
     }
     NODES_DATASET.remove(TMP_ASSET_STORE)
+  }
+}
+
+function togglePathVisualization() {
+  INDIVIDUAL_PATH_VISUALIZATION = !INDIVIDUAL_PATH_VISUALIZATION;
+  if (COMPARE_NODE) {
+    EDGES_DATASET.clear()
+    EDGES_DATASET.add(UNMODIFIED_DATA.edges)
+    showNodePath(COMPARE_NODE);
   }
 }
 

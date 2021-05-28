@@ -5,7 +5,7 @@ export class Hub extends MeshNode {
 
   constructor(crownstoneId: number, macAddress?: macAddress) {
     super(macAddress);
-    this.crownstoneId = `${crownstoneId}`;
+    this.crownstoneId = crownstoneId;
   }
 
 }
