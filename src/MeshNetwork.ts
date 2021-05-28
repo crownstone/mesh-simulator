@@ -42,7 +42,11 @@ export class MeshNetwork {
     node.placeInMesh(this);
   }
 
-  addConnection(from: macAddress, to: macAddress, rssi?: number | {37: number, 38: number, 39: number}) {
+  addConnection(connection: Connection) {
+    let rssi = connection.rssi;
+    let from = connection.from;
+    let to   = connection.to;
+
     if (!rssi) { rssi = -60; }
 
     if (typeof rssi === 'number') {
@@ -60,7 +64,6 @@ export class MeshNetwork {
       this.connections[`${to}_${from}`] = rssi;
     }
   }
-
 
   broadcast(sender: crownstoneId, content : wrappedMessage, ttl: number, repeats: number) {
     let senderMacAddress = this.nodeIdMap[sender];

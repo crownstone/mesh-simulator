@@ -55,6 +55,9 @@ function initDOM() {
       NETWORK.selectNodes([UNMODIFIED_DATA[0].id]);
       showNodeStatistics(NODES_DATASET.get()[0]);
     }
+    else if (data.type === "START_SIMULATION") {
+      SIM_OVERLAY.style.display = "block";
+    }
   })
   initVis();
 }

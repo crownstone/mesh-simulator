@@ -66,7 +66,7 @@ topology.connections.push({from:i2m(7), to: i2m(8)})
 
 for (let node of topology.nodes)             { meshNetwork.addNode(node) }
 for (let asset of topology.assets)           { meshNetwork.addNode(asset) }
-for (let connection of topology.connections) { meshNetwork.addConnection(connection.from, connection.to) }
+for (let connection of topology.connections) { meshNetwork.addConnection(connection) }
 
 statistics.initialize(meshNetwork.nodeIdMap, meshNetwork.nodes);
 

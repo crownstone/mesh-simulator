@@ -6,6 +6,7 @@ import {Asset} from "../nodes/Asset";
 import {StatisticsCollector} from "../statistics/StatisticsCollector";
 
 let server = new SocketServer()
+server.createServer()
 let RECEIVED_MESSAGES = [];
 
 class HubNode extends Hub {
@@ -71,7 +72,7 @@ topology.connections.push({from: i2m(8), to: topology.assets[0].macAddress})
 
 for (let node of topology.nodes)             { meshNetwork.addNode(node) }
 for (let asset of topology.assets)           { meshNetwork.addNode(asset) }
-for (let connection of topology.connections) { meshNetwork.addConnection(connection.from, connection.to) }
+for (let connection of topology.connections) { meshNetwork.addConnection(connection) }
 
 statistics.initialize(meshNetwork.nodeIdMap, meshNetwork.nodes);
 
@@ -103,6 +104,7 @@ server.setMessageHandler(async (message) => {
     await meshNetwork.runFor(message.data);
     statistics.finalize();
     server.send({type:"STATISTICS", data: statistics.nodes})
+    console.log(JSON.stringify(statistics.nodes, undefined, 2))
   }
 })
 
@@ -111,5 +113,7 @@ async function run() {
   await server.connectionEstablished();
 }
 run()
+
+
 
 

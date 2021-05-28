@@ -10,8 +10,10 @@ export class SocketServer {
 
   constructor(messageHandler = () => {}) {
     this._messageHandler = messageHandler;
-    this._socket = new ws.Server({ port: 8080 });
+  }
 
+  createServer() {
+    this._socket = new ws.Server({ port: 8080 });
     this._socket.on('connection', (ws) => {
       console.log("Got a connection");
       ws.isAlive = true;
@@ -47,6 +49,8 @@ export class SocketServer {
   }
 
   _ping() {
+    if (this._connected === false) { return; }
+
     this._socket.clients.forEach((ws) => {
       if (ws.isAlive === false) {
         console.log("Terminating client due to no pong")
@@ -74,6 +78,8 @@ export class SocketServer {
   }
 
   _send(data : string) {
+    if (this._connected === false) { return; }
+
     this._socket.clients.forEach((ws) => {
       ws.send(data);
     });

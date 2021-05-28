@@ -4,7 +4,6 @@ import {MeshNode} from "../nodes/base/MeshNode";
 
 export class StatisticsCollector {
 
-
   nodeReference : Record<macAddress, MeshNode> = {}
   nodeIdMap : Record<macAddress, crownstoneId> = {}
   nodes : StatisticsData = {};
@@ -12,17 +11,16 @@ export class StatisticsCollector {
   relayDuplicateCheck = {};
   subscriptions = [];
 
-  constructor() {
-
-  }
-
   reset() {
     this.nodes = {};
+    this.nodeReference = {};
+    this.nodeIdMap = {};
+
     this.messageHistory = {};
     this.relayDuplicateCheck = {};
-    for (let nodeId in this.nodeReference) {
-      this._ensureNode(nodeId);
-    }
+
+    this.subscriptions.forEach((cleanup) => { cleanup(); });
+    this.subscriptions = [];
   }
 
   initialize(nodeIdMap: Record<macAddress, crownstoneId>, nodeReference: Record<macAddress, MeshNode>) {
