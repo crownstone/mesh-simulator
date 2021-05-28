@@ -57,28 +57,28 @@ This way you can provide your own classes to interact over the mesh.
 
 There are a few methods you can implement.
 
->###`start()`
+>### `start()`
 > This is called for you when the simulation starts
 
->###`cleanup()`
+>### `cleanup()`
 > This is called for you when the simulation ends. You can use it to clean up any subscribers.
 
->###`broadcast(data: message, ttl: number, repeats: number = 0)`
+>### `broadcast(data: message, ttl: number, repeats: number = 0)`
 > Use this to send a (singlepart) message over the mesh. The data can be anything you want
 > Repeats here is the mesh-repeat method. This is not used in Crownstone (at the moment). We use burst repeat. See next.
 
 
->###`broadcastBurst(data: message, ttl: number, repeats: number = 4)`
+>### `broadcastBurst(data: message, ttl: number, repeats: number = 4)`
 > This emulates how Crownstones send mesh mesasges. It sends a message 5 times (so repeat 4) in quick succession, but when 
 > another node receives it, it only relays it once. The mesh-repeat would also cause the relay to repeat.
 
->###`advertise(data?)`
+>### `advertise(data?)`
 > Used by assets. Advertises over ble. Data is freely available. Mac and RSSI are already delivered regardless of data.
 
->###`handleAdvertisement(from: macAddress, data, rssi: number)`
+>### `handleAdvertisement(from: macAddress, data, rssi: number)`
 > You use this to respond to ble advertisements.
 
->###`handleMeshMessage(source: crownstoneId, sentBy: macAddress, data, rssi: number, ttl: number, repeats: number)`
+>### `handleMeshMessage(source: crownstoneId, sentBy: macAddress, data, rssi: number, ttl: number, repeats: number)`
 > You get to handle a mesh message that you received sentBy macaddress. It originated from the source crownstoneId (number).
 
 # Simulator
@@ -89,21 +89,21 @@ You have one class that does the magic.
 
 It does everything for you. Here's its API.
 
->###`allowNewTopology(path: string)`
+>### `allowNewTopology(path: string)`
 > If you call this with a path, any changes to the topology from the GUI will be stored there.
 
->###`setTopologyFromFile(path, classMap)`
+>### `setTopologyFromFile(path, classMap)`
 > This constructs the setup based on a json file. The classmap tells it how to use your custom classes for the basic types.
 > See examples for usage.
 
->###`async run(seconds: number)`
+>### `async run(seconds: number)`
 > Run the simulation from start for the provided amount of seconds. The rate is 100x, so if you simulate 100s, it takes about a second.
 > Each run is individual and starts everything all over again.
 
->###`async waitForConnection()`
+>### `async waitForConnection()`
 > Awaitable that will pass once the GUI has connected. 
 
->###`report()`
+>### `report()`
 > Returns the statistics object. 
 
 
