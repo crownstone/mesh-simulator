@@ -151,3 +151,12 @@ function populateColorObject(clr, color) {
 
   return clr;
 }
+
+function getMacAddress() {
+  function getByte() {
+    let byte = Math.floor(Math.random()*0xff).toString(16)
+    if (byte.length == 1) { byte = '0' + byte; }
+    return byte;
+  }
+  return `${getByte()}:${getByte()}:${getByte()}:${getByte()}:${getByte()}:${getByte()}`
+}

@@ -20,7 +20,6 @@ export class MeshNode {
     this.macAddress = macAddress ?? Util.getMacAddress();
   }
 
-  _init()   {}
 
   /**
    * Used to set event listeners etc.
@@ -46,7 +45,6 @@ export class MeshNode {
   placeInMesh(mesh: MeshNetwork) {
     this.mesh = mesh;
     this.meshTimer = this.mesh.timer;
-    this._init();
     this.init();
   }
 

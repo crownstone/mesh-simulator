@@ -113,13 +113,14 @@ type DeviceType = "HUB" | "CROWNSTONE" | "ASSET";
 
 interface InputTopology {
   nodes: InputTopologyNode[],
-  assets: InputTopologyAssetNode[],
+  assets?: InputTopologyAssetNode[],
   connections: InputTopologyConnection[],
 }
 
 interface InputTopologyNode {
   id: number,
   macAddress?: macAddress
+  crownstoneId?: number
   type: DeviceType,
 }
 

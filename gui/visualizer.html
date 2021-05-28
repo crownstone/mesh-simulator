@@ -30,15 +30,18 @@
 </head>
 <body onload="init()">
 <div id="connectedState">Disconnected...</div>
-<input type="button" value="Run 50s" style="width:200px" onclick="runSimulation(50)"/>
+<input type="button" value="Run 20s" style="width:200px" onclick="runSimulation(20)"/>
 <!--<input type="button" value="Add Hub" style="width:200px" onclick="addHub()"/>-->
-<!--<input type="button" value="Add Crownstone" style="width:200px" onclick="addCrownstone()"/>-->
+<input type="button" value="Add Crownstone" style="width:200px" onclick="addCrownstone()"/>
+<input type="button" value="Add Edge" style="width:200px" onclick="addEdge()"/>
+<input type="button" value="Delete Selected" style="width:200px" onclick="deleteSelected()"/>
+<input type="button" value="Toggle asset visibility" style="width:200px" onclick="toggleAssets()"/>
 <!--<input type="button" value="Add Asset" style="width:200px" onclick="addAsset()"/>-->
 <!--<input type="button" value="Random Topology" style="width:200px" onclick="randomTopology()"/>-->
 <div id="networkContainer" style="display:block">
     <div style="position:relative;">
         <div id="meshTopology"></div>
-        <div style="position:absolute; top:10px; left:10px; pointer-events: none;">
+        <div style="position:absolute; bottom:10px; left:10px; pointer-events: none;">
             <div id="detail"></div>
         </div>
     </div>

@@ -26,7 +26,10 @@ export class MeshSimulator {
   statistics: StatisticsCollector;
   server:     SocketServer;
 
-  topology = {nodes: [], connections: []}
+  topology = {nodes: [], connections: []};
+  newTopologyPath = null;
+  inputClassMap: InputClassMap;
+
 
   constructor(useGui = true) {
     this.network    = new MeshNetwork();
@@ -39,14 +42,18 @@ export class MeshSimulator {
     }
   }
 
+  allowNewTopology(path) {
+    this.newTopologyPath = path;
+  }
+
   async messageHandler(message) {
     if (typeof message !== 'object') { return; }
 
-    if (message.type == "LOAD_TOPOLOGY") {
-      /**
-       * message.data = {nodes: {crownstoneId, macAddress, type}[], connections: {from: macAddress, to: macAddress, rssi}[]}
-       * type = "CROWNSTONE", "HUB", "ASSET"
-       */
+    if (message.type == "UPDATE_TOPOLOGY") {
+      if (this.newTopologyPath !== null) {
+        fs.writeFileSync(this.newTopologyPath, JSON.stringify(message.data, undefined, 4));
+        this.setTopologyFromFile(this.newTopologyPath, this.inputClassMap);
+      }
     }
     else if (message.type == "GET_TOPOLOGY") {
       let data = {
@@ -55,7 +62,7 @@ export class MeshSimulator {
       };
       for (let node of this.topology.nodes)               { data.nodes.push({id: node.macAddress, cid: node.crownstoneId, type: node.type}); }
       for (let connection of this.topology.connections)   { data.edges.push(connection); }
-      this.server.send({type:"TOPOLOGY", data: data})
+      this.server.send({type:"TOPOLOGY", data: data});
     }
     else if (message.type == "RUN_SIMULATION") {
       await this.run(message.data);
@@ -78,12 +85,14 @@ export class MeshSimulator {
   }
 
   setTopologyFromFile(filePath : string, classMap: InputClassMap) {
+    this.inputClassMap = classMap;
     let content = fs.readFileSync(filePath, 'utf-8');
     let json = JSON.parse(content);
     this.setTopology(json, classMap);
   }
 
   setTopology(topology: InputTopology, classMap: InputClassMap) {
+    this.inputClassMap = classMap;
     let nodes = [];
     let connections = [];
 

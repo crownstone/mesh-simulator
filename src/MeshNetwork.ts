@@ -7,7 +7,6 @@ let CHANNELS = [37,38,39];
 
 export class MeshNetwork {
 
-
   nodeIdMap : Record<crownstoneId, macAddress> = {}
   nodes : Record<macAddress, MeshNode> = {}
   connections = {};
@@ -23,18 +22,26 @@ export class MeshNetwork {
     for (let nodeId in this.nodes) {
       this.nodes[nodeId].start();
     }
-    console.log("Start simulating for", seconds, "seconds")
+    console.time("simulate")
+    console.log("Start simulating for", seconds, "seconds");
     return new Promise<void>((resolve, reject) => {
       this.timer.continue()
       this.timer.setTimeout(() => {
         console.log("Simulation completed.")
+        console.timeEnd("simulate");
         this.timer.pause();
-        for (let nodeId in this.nodes) {
-          this.nodes[nodeId].stop();
-        }
+        this.reset();
+
         resolve();
       }, seconds*1000);
     })
+  }
+
+  reset() {
+    for (let nodeId in this.nodes) {
+      this.nodes[nodeId].stop();
+    }
+    this.timer.clear()
   }
 
   addNode(node: MeshNode) {

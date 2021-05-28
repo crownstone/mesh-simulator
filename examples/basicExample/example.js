@@ -9,6 +9,8 @@ class CrownstoneNode extends Crownstone {
 }
 
 let sim = new MeshSimulator()
+sim.allowNewTopology(path.join(__dirname,'./topology.json'))
+
 sim.setTopologyFromFile(path.join(__dirname,'./topology.json'), {CROWNSTONE: CrownstoneNode})
 sim.waitForConnection().then(() => {
   sim.run(100)

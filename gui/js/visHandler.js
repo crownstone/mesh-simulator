@@ -4,7 +4,9 @@ let CONNECTED_STATE;
 let GRAPH_WRAPPER;
 let SIM_OVERLAY;
 let DETAIL;
+let SHOW_ASSETS = false;
 
+let TMP_ASSET_STORE = [];
 let NODES_DATASET = new vis.DataSet();
 let EDGES_DATASET = new vis.DataSet();
 let NETWORK;
@@ -33,9 +35,6 @@ let GROUP_COLORS = [
   colors.darkRed,
 ];
 
-let CROWNSTONE_ID = 1;
-let ASSET_ID = 500;
-
 function initDOM() {
   GRAPH_WRAPPER         = document.getElementById("networkContainer");
   CONNECTED_STATE       = document.getElementById("connectedState");
@@ -55,6 +54,8 @@ function initDOM() {
     else if (data.type === "STATISTICS") {
       SIM_OVERLAY.style.display = "none";
       loadStatistics(data.data);
+
+      console.log("selecting", [UNMODIFIED_DATA.nodes[0].id], NODES_DATASET.get()[0])
       NETWORK.selectNodes([UNMODIFIED_DATA.nodes[0].id]);
       showNodeStatistics(NODES_DATASET.get()[0]);
     }
@@ -116,30 +117,31 @@ function initVis() {
   NETWORK = new vis.Network(VIS_CONTAINER, {nodes: NODES_DATASET, edges: EDGES_DATASET}, options);
   // NETWORK = new vis.Network(VIS_CONTAINER,  getScaleFreeNetwork(25), options);
 
+  EDGES_DATASET.on('add', (event, properties, senderId) => {
+    if (properties.items.length === 1) {
+      let edge = {...EDGES_DATASET.get(properties.items[0])};
+      let fromNode = NODES_DATASET.get(edge.from);
+      let toNode   = NODES_DATASET.get(edge.to);
+      console.log(edge, fromNode, toNode)
+      if (fromNode.group === 'ASSET' || toNode.group === "ASSET") {
+        edge.physics = false;
+        EDGES_DATASET.update(edge)
+      }
+
+      UNMODIFIED_DATA.edges.push(edge);
+      updateTopology()
+    }
+  })
+
   NETWORK.on("click", (data) => {
-    if (data.nodes.length == 0 && data.edges.length > 0) {
-      // show edge
-      let edgeData = EDGES_DATASET.get(data.edges[0])
-      DETAIL.innerHTML = JSON.stringify({
-        ...edgeData.data, lastSeen: new Date(edgeData.data.lastSeen).toLocaleTimeString()
-      }, undefined, 2);
-      NODES_DATASET.update(UNMODIFIED_DATA);
-    }
-    else if (data.nodes.length == 0 && data.edges.length == 0) {
-      DETAIL.innerHTML = '';
-      console.log(UNMODIFIED_DATA)
-      NODES_DATASET.update(UNMODIFIED_DATA.nodes);
-      EDGES_DATASET.clear();
-      EDGES_DATASET.add(UNMODIFIED_DATA.edges);
-      SHOWING_NODE = null;
-      COMPARE_NODE = null;
-    }
-    else {
+    if (data.nodes.length == 1) {
       let nodeData = NODES_DATASET.get(data.nodes[0])
       if (SHOWING_NODE && SHOWING_NODE.id !== nodeData.id) {
         if (COMPARE_NODE && COMPARE_NODE.id === nodeData.id) {
           // deselect the compare node.
           NETWORK.selectNodes([SHOWING_NODE.id]);
+          NODES_DATASET.update(UNMODIFIED_DATA.nodes);
+          EDGES_DATASET.update(UNMODIFIED_DATA.edges);
           COMPARE_NODE = null;
           showNodeStatistics(SHOWING_NODE);
           return;
@@ -153,6 +155,15 @@ function initVis() {
         // show node summary
         showNodeStatistics(nodeData);
       }
+    }
+    else {
+      DETAIL.innerHTML = '';
+      console.log(UNMODIFIED_DATA)
+      NODES_DATASET.update(UNMODIFIED_DATA.nodes);
+      EDGES_DATASET.clear();
+      EDGES_DATASET.add(UNMODIFIED_DATA.edges);
+      SHOWING_NODE = null;
+      COMPARE_NODE = null;
     }
   })
 
@@ -250,7 +261,7 @@ function showNodeStatistics(nodeData) {
     }
     // this is the node that we clicked on
     if (nodeItem.id === nodeData.id) {
-      nodeItem.label = `${nodeData.crownstoneId} - Details in top left corner.`
+      nodeItem.label = `${nodeData.crownstoneId} - Details in bottom left corner.`
     }
   }
 
@@ -277,14 +288,15 @@ function showNodePath(otherNode) {
   let pathData = meshRecevied.paths;
   let paths = Object.keys(pathData);
   
-  let edges = UNMODIFIED_DATA.edges;
+  let edges = EDGES_DATASET.get();
+  console.log(edges, UNMODIFIED_DATA.edges)
   function findEdge(a,b) {
     for (let edge of edges) {
       if (edge.from === a && edge.to === b) {
-        return edge;
+        return {...edge};
       }
       if (edge.to === a && edge.from === b) {
-        return edge;
+        return {...edge};
       }
     }
   }
@@ -307,6 +319,8 @@ function showNodePath(otherNode) {
     let ratio = pathData[path].count / total;
     for (let i = 1; i < arr.length; i++) {
       let edge = findEdge(arr[i-1],arr[i]);
+      if (!edge) { continue; }
+
       let arrow = {arrows: {}}
       if (edge.to === arr[i]) {
         arrow.arrows.to = true;
@@ -337,7 +351,7 @@ function loadTopology(data) {
     CROWNSTONE: 'dot'
   }
   let massMap = {
-    ASSET:      1,
+    ASSET:      5,
     HUB:        5,
     CROWNSTONE: 2,
   }
@@ -348,15 +362,24 @@ function loadTopology(data) {
     nodeMap[node.id] = node.type;
   }
 
+  TMP_ASSET_STORE = []
+
   for (let edge of data.edges) {
-    edges.push(edge);
+    edges.push({...edge, ...getEdgeSettingsRssi(edge.rssi)});
     if (nodeMap[edge.from] === "ASSET" && nodeMap[edge.to] !== "ASSET") {
       if (nodeMapSeeAssets[edge.to] === undefined) { nodeMapSeeAssets[edge.to] = 0; }
       nodeMapSeeAssets[edge.to]++;
+      edge.physics = false;
     }
     if (nodeMap[edge.to] === "ASSET" && nodeMap[edge.from] !== "ASSET") {
       if (nodeMapSeeAssets[edge.from] === undefined) { nodeMapSeeAssets[edge.from] = 0; }
       nodeMapSeeAssets[edge.from]++;
+      edge.physics = false;
+
+      // turn them around so the edge always points from asset to crownstone
+      let tmp = edge.from;
+      edge.from = edge.to;
+      edge.to = tmp;
     }
   }
 
@@ -364,10 +387,19 @@ function loadTopology(data) {
     if (node.type !== 'ASSET') {
       let visibleAssets = nodeMapSeeAssets[node.id];
       if (visibleAssets > 0) {
-        nodes.push({id: node.id, label: node.cid+":["+visibleAssets+"]", crownstoneId: node.cid, visibleAssets, group: node.type + ':' + visibleAssets, shape: shapeMap[node.type], mass: massMap[node.type]})
+        nodes.push({id: node.id, label: node.cid+":["+visibleAssets+"]",  type: node.type, crownstoneId: node.cid, visibleAssets, group: node.type + ':' + visibleAssets, shape: shapeMap[node.type], mass: massMap[node.type]})
       }
       else {
-        nodes.push({id: node.id, label: node.cid+": No assets in range", crownstoneId: node.cid, visibleAssets, group: node.type, shape: shapeMap[node.type], mass: massMap[node.type]})
+        nodes.push({id: node.id, label: node.cid+": No assets in range",  type: node.type, crownstoneId: node.cid, visibleAssets, group: node.type + ':0', shape: shapeMap[node.type], mass: massMap[node.type]})
+      }
+    }
+    else {
+      let assetNode = {id: node.id, label: "Asset", crownstoneId: "Asset", intervalMs: node.intervalMs, type: node.type, group: node.type, shape: shapeMap[node.type], mass: massMap[node.type], fixed: true};
+      if (SHOW_ASSETS === false) {
+        TMP_ASSET_STORE.push(assetNode)
+      }
+      else {
+        nodes.push(assetNode);
       }
     }
   }
@@ -377,7 +409,12 @@ function loadTopology(data) {
   NODES_DATASET.add(nodes);
   EDGES_DATASET.add(edges);
   NETWORK.stabilize(300)
-  UNMODIFIED_DATA = {nodes: nodes, edges: edges};
+
+  let loadedEdges = EDGES_DATASET.get();
+  UNMODIFIED_DATA = {nodes: nodes, edges: []};
+  for (let edge of loadedEdges) {
+    UNMODIFIED_DATA.edges.push({...edge})
+  }
 }
 
 
@@ -387,8 +424,11 @@ function loadStatistics(data) {
   for (let node of nodes) {
     node.statistics = data[node.id]
   }
-  UNMODIFIED_DATA.nodes = nodes;
   NODES_DATASET.update(nodes)
+
+  for (let node of UNMODIFIED_DATA.nodes) {
+    node.statistics = data[node.id]
+  }
 }
 
 
@@ -424,53 +464,136 @@ function getEdgeSettings(ratio, label, rangeMin, rangeMax) {
   }
 }
 
-// function getEdgeSettings(rssi) {
-//   let label = rssi;
-//   // item list for the 6 different phases. They fade to each other.
-//   let bounds = [-70, -76, -83, -92];
-//
-//   let baseWidth = 10;
-//   if (rssi > bounds[0]) {
-//     // 0 .. -59
-//     return {color: colors.green.hex, width: baseWidth, label: label}
-//   }
-//   else if (rssi > bounds[1]) {
-//     // -60 .. -69
-//     let factor = 1-Math.abs((rssi - bounds[0])/(bounds[0]-bounds[1]));
-//     return {color: colors.green.blend(colors.blue2, 1-factor).hex, width: baseWidth*0.4 + baseWidth*0.6*factor, label: label}
-//   }
-//   else if (rssi > bounds[2]) {
-//     // -70 .. -79
-//     let factor = 1-Math.abs((rssi - bounds[1])/(bounds[1]-bounds[2]));
-//     return {color: colors.blue2.blend(colors.purple, 1-factor).hex, width: baseWidth*0.4*0.4 + baseWidth*0.4*0.6*factor, label: label}
-//   }
-//   else if (rssi > bounds[3]) {
-//     let factor = 1-Math.abs((rssi - bounds[2])/(bounds[2]-bounds[3]));
-//     // -81 .. -85
-//     return {color: colors.purple.blend(colors.red, 1-factor).hex, width: baseWidth*0.4*0.4, label: label}
-//
-//   }
-//   else {
-//     // -95 .. -120
-//     return {color: colors.darkRed.hex, width: baseWidth*0.4*0.4, opacity: 0.6, dashArray:"8, 12", label: label}
-//   }
-// }
 
+function updateTopology() {
+  let nodes = [];
+  let edges = [];
+  let assets = [];
 
-function addHub() {
-  NODES_DATASET.add({id: CROWNSTONE_ID, label:"Hub:" + CROWNSTONE_ID, type:"HUB", group:"hubs", shape: 'star'});
-  CROWNSTONE_ID++;
+  for (let node of UNMODIFIED_DATA.nodes) {
+    nodes.push({id: node.id, macAddress: node.id, crownstoneId: node.crownstoneId, type: node.type})
+  }
+  for (let asset of TMP_ASSET_STORE) {
+    assets.push({id: asset.id, macAddress: asset.id, intervalMs: asset.intervalMs, type: asset.type})
+  }
+  if (assets.length === 0) {
+    let nodes = NODES_DATASET.get();
+    for (let node of nodes) {
+      if (node.type === "ASSET") {
+        assets.push({id: node.id, macAddress: node.id, intervalMs: node.intervalMs, type: node.type})
+      }
+    }
+  }
+  for (let edge of UNMODIFIED_DATA.edges) {
+    edges.push({from: edge.from, to: edge.to, rssi: edge.rssi});
+  }
+
+  CLIENT.send({
+    type:"UPDATE_TOPOLOGY",
+    data: {
+      nodes: nodes,
+      assets: assets,
+      connections: edges,
+    }
+  })
 }
+
+function getEdgeSettingsRssi(rssi = -80) {
+  if (typeof rssi ==='object') {
+    let average  = 0;
+    let avgCount = 0;
+    if (rssi['37'] !== 0) { average += rssi['37']; avgCount += 1; }
+    if (rssi['38'] !== 0) { average += rssi['38']; avgCount += 1; }
+    if (rssi['39'] !== 0) { average += rssi['39']; avgCount += 1; }
+    rssi = Math.round(average/avgCount);
+  }
+
+  let label = rssi;
+  // item list for the 6 different phases. They fade to each other.
+  let bounds = [-70, -76, -83, -92];
+
+  let baseWidth = 10;
+  if (rssi > bounds[0]) {
+    // 0 .. -59
+    return {color: colors.green.hex, width: baseWidth, label: label}
+  }
+  else if (rssi > bounds[1]) {
+    // -60 .. -69
+    let factor = 1-Math.abs((rssi - bounds[0])/(bounds[0]-bounds[1]));
+    return {color: colors.green.blend(colors.blue2, 1-factor).hex, width: baseWidth*0.4 + baseWidth*0.6*factor, label: label}
+  }
+  else if (rssi > bounds[2]) {
+    // -70 .. -79
+    let factor = 1-Math.abs((rssi - bounds[1])/(bounds[1]-bounds[2]));
+    return {color: colors.blue2.blend(colors.purple, 1-factor).hex, width: baseWidth*0.4*0.4 + baseWidth*0.4*0.6*factor, label: label}
+  }
+  else if (rssi > bounds[3]) {
+    let factor = 1-Math.abs((rssi - bounds[2])/(bounds[2]-bounds[3]));
+    // -81 .. -85
+    return {color: colors.purple.blend(colors.red, 1-factor).hex, width: baseWidth*0.4*0.4, label: label}
+
+  }
+  else {
+    // -95 .. -120
+    return {color: colors.darkRed.hex, width: baseWidth*0.4*0.4, opacity: 0.6, dashArray:"8, 12", label: label}
+  }
+}
+
+
 
 function addCrownstone() {
-  NODES_DATASET.add({id: CROWNSTONE_ID, label:"Stone:" + CROWNSTONE_ID, type:"CROWNSTONE", group:"stones",shape: 'dot'});
-  CROWNSTONE_ID++;
+  let id = 0;
+  for (let node of UNMODIFIED_DATA.nodes) {
+    if (node.type !== "ASSET") {
+      id = Math.max(id, Number(node.crownstoneId));
+    }
+  }
+  id += 1;
+  let newNode = {id: getMacAddress(), crownstoneId: id, label:id+ ": No assets in range", type:"CROWNSTONE", group:"CROWNSTONE:0", shape: 'dot'};
+  UNMODIFIED_DATA.nodes.push(newNode)
+  NODES_DATASET.add(newNode);
 }
 
-function addAsset() {
-  NODES_DATASET.add({id: ASSET_ID, label:"Asset:" + ASSET_ID, type:"ASSET", shape: 'diamond', group:"assets"});
-  ASSET_ID++;
+function addEdge() {
+  NETWORK.addEdgeMode()
 }
+
+function deleteSelected() {
+  let selectedEdges = NETWORK.getSelectedEdges();
+  let selectedNodes = NETWORK.getSelectedNodes();
+
+  for (let i = UNMODIFIED_DATA.nodes.length - 1; i >= 0; i--) {
+    if (selectedNodes.indexOf(UNMODIFIED_DATA.nodes[i].id) !== -1) {
+      UNMODIFIED_DATA.nodes.splice(i,1);
+    }
+  }
+  for (let i = UNMODIFIED_DATA.edges.length - 1; i >= 0; i--) {
+    if (selectedEdges.indexOf(UNMODIFIED_DATA.edges[i].id) !== -1) {
+      UNMODIFIED_DATA.edges.splice(i,1);
+    }
+  }
+  updateTopology()
+}
+
+function toggleAssets() {
+  SHOW_ASSETS = !SHOW_ASSETS;
+
+  if (SHOW_ASSETS) {
+    NODES_DATASET.add(TMP_ASSET_STORE);
+    TMP_ASSET_STORE = [];
+  }
+  else {
+    TMP_ASSET_STORE = [];
+    let nodes = NODES_DATASET.get();
+    for (let node of nodes) {
+      if (node.type === "ASSET") {
+        TMP_ASSET_STORE.push(node);
+      }
+    }
+    NODES_DATASET.remove(TMP_ASSET_STORE)
+  }
+}
+
 
 function randomTopology() {
   let nodes = NODES_DATASET.get();
