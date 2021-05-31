@@ -13,8 +13,8 @@ export class MeshNetwork {
   connectionMap = {};
   timer: any;
 
-  constructor(simulationRate: number = 100) {
-    this.timer = hypertimer({rate: simulationRate, time: Date.now()});
+  constructor() {
+    this.timer = hypertimer({time: Date.now(), paced: false});
     this.timer.pause();
   }
 

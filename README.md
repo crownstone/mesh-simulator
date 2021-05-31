@@ -97,7 +97,7 @@ It does everything for you. Here's its API.
 > See examples for usage.
 
 >### `async run(seconds: number)`
-> Run the simulation from start for the provided amount of seconds. The rate is 100x, so if you simulate 100s, it takes about a second.
+> Run the simulation from start for the provided amount of seconds.
 > Each run is individual and starts everything all over again.
 
 >### `async waitForConnection()`
