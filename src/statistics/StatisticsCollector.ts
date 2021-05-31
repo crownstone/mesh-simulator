@@ -7,6 +7,7 @@ export class StatisticsCollector {
   nodeReference : Record<macAddress, MeshNode> = {}
   nodeIdMap : {[crownstoneId: string]: macAddress} = {}
   nodes : StatisticsData = {};
+  messageStartedHistory = {};
   messageHistory = {};
   relayDuplicateCheck = {};
   subscriptions = [];
@@ -16,6 +17,7 @@ export class StatisticsCollector {
     this.nodeReference = {};
     this.nodeIdMap = {};
 
+    this.messageStartedHistory = {};
     this.messageHistory = {};
     this.relayDuplicateCheck = {};
 
@@ -37,17 +39,42 @@ export class StatisticsCollector {
     this.subscriptions.push(EventBus.on("MessageReceived",              this.handleMessageReceived.bind(this)))
     this.subscriptions.push(EventBus.on("MessageFailedToBeDelivered",   this.handleMessageFailed.bind(this)))
     this.subscriptions.push(EventBus.on("Advertisement",                this.handleAdvertisementSent.bind(this)))
-    this.subscriptions.push(EventBus.on("MeshBroadcast",                this.handleBroadcastSent.bind(this)))
+    this.subscriptions.push(EventBus.on("MeshBroadcastQueued",          this.handleBroadcastQueued.bind(this)))
+    this.subscriptions.push(EventBus.on("MeshBroadcastStarted",         this.handleBroadcastStarted.bind(this)))
+    this.subscriptions.push(EventBus.on("MeshBroadcastIndividual",      this.handleBroadcastSent.bind(this)))
+    this.subscriptions.push(EventBus.on("QueueOverflow",                this.handleQueueOverflow.bind(this)))
   }
+
+  handleQueueOverflow(data: MeshQueueOverflowEvent) {
+    let item = this._ensureNode(data.address);
+    item.meshBroadcasts.queueOverflow.count += 1;
+  }
+
 
   handleBroadcastSent(data: MeshBroadcastEvent) {
     let item = this._ensureNode(data.sender);
+    item.meshBroadcasts.sent.count += 1;
+    this._processReceiver(item.meshBroadcasts.sent.receivers, data);
+  }
+
+
+  handleBroadcastStarted(data: MeshBroadcastStartedEvent) {
+    let item = this._ensureNode(data.sender);
+    if (this.messageStartedHistory[data.sender][data.messageId] !== true) {
+      item.meshBroadcasts.started.unique += 1;
+      this.messageStartedHistory[data.sender][data.messageId] = true;
+    }
+    item.meshBroadcasts.started.count += 1;
+  }
+
+  handleBroadcastQueued(data: MeshBroadcastQueuedEvent) {
+    let item = this._ensureNode(data.sender);
     if (this.messageHistory[data.sender][data.messageId] !== true) {
+      item.meshBroadcasts.queued.unique += 1;
       item.meshBroadcasts.sent.unique += 1;
       this.messageHistory[data.sender][data.messageId] = true;
     }
-    item.meshBroadcasts.sent.count += 1;
-    this._processReceiver(item.meshBroadcasts.sent.receivers, data);
+    item.meshBroadcasts.queued.count += 1;
   }
 
   /**
@@ -136,6 +163,7 @@ export class StatisticsCollector {
 
   _ensureNode(mac) {
     if (this.nodes[mac] === undefined) {
+      this.messageStartedHistory[mac] = {}
       this.messageHistory[mac] = {}
       this.nodes[mac] = {
         type: this.nodeReference[mac].type,
@@ -145,8 +173,12 @@ export class StatisticsCollector {
           received: { senders: {} },
         },
         meshBroadcasts: {
-          sent:    { unique: 0, count: 0, receivers: {} },
-          relayed: { unique: 0, count: 0, receivers: {} },
+          started:   { unique: 0, count: 0 },
+          queued:    { unique: 0, count: 0 },
+          sent:      { unique: 0, count: 0, receivers: {} },
+          relayed:   { unique: 0, count: 0, receivers: {} },
+
+          queueOverflow: { count: 0 },
 
           received: { senders: {} },
           sentDuplicates: { count: 0, receivers: {} },
@@ -165,7 +197,7 @@ export class StatisticsCollector {
       for (let otherAddress in this.nodes) {
         if (address == otherAddress) { continue; }
         let senderNode = this.nodes[otherAddress];
-        let sentMeshBroadcasts = senderNode.meshBroadcasts.sent.unique;
+        let sentMeshBroadcasts = senderNode.meshBroadcasts.started.unique;
         if (mesh.received.senders[otherAddress] === undefined) {
           mesh.received.senders[otherAddress] = { count: 0, outOf: 0, paths: {}}
         }

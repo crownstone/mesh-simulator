@@ -26,6 +26,20 @@ interface MeshBroadcastEvent {
   ttl: number,
   repeats: number
 }
+interface MeshQueueOverflowEvent {
+  address: macAddress,
+  tranmissions: number
+}
+
+
+interface MeshBroadcastStartedEvent {
+  sender: macAddress,
+  messageId: string,
+  ttl: number,
+  repeats: number
+}
+type MeshBroadcastQueuedEvent = MeshBroadcastStartedEvent;
+
 interface MeshRelayEvent {
   sender: macAddress,
   receiver: macAddress,
@@ -70,9 +84,11 @@ interface StatisticsData {
       received: { senders: StatisticsReceiveRate },
     },
     meshBroadcasts: {
+      started: { unique: number, count: number },
+      queued:  { unique: number, count: number },
       sent:    { unique: number, count: number, receivers: StatisticsSuccessRate},
       relayed: { unique: number, count: number, receivers: StatisticsSuccessRate},
-
+      queueOverflow: {count: number},
       received: { senders: StatisticsReceiveData }
       sentDuplicates: { count: number, receivers: { [macAddress: string]: string[] }},
       blocked: { receivers: StatisticsSuccessRate}

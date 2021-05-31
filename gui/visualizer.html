@@ -9,6 +9,7 @@
     <script src="./js/lib/colorConverters.js"></script>
     <script src="./js/lib/vis.js"></script>
     <script src="./js/ws.js"></script>
+    <script src="./js/statisticsVisualization.js"></script>
     <script src="./js/util.js"></script>
     <script src="./js/visHandler.js"></script>
     <style>
@@ -32,9 +33,9 @@
 <div id="connectedState">Disconnected...</div>
 <input type="button" value="Run 50s" style="width:200px" onclick="runSimulation(50)"/>
 <!--<input type="button" value="Add Hub" style="width:200px" onclick="addHub()"/>-->
-<input type="button" value="Add Crownstone" style="width:200px" onclick="addCrownstone()"/>
-<input type="button" value="Add Edge" style="width:200px" onclick="addEdge()"/>
-<input type="button" value="Delete Selected" style="width:200px" onclick="deleteSelected()"/>
+<input id="topologyButtonAddNode" type="button" value="Add Crownstone"  style="display:none; width:200px" onclick="addCrownstone()"/>
+<input id="topologyButtonAddEdge" type="button" value="Add Edge"        style="display:none; width:200px" onclick="addEdge()"/>
+<input id="topologyButtonDelete"  type="button" value="Delete Selected" style="display:none; width:200px" onclick="deleteSelected()"/>
 <input type="button" value="Toggle asset visibility" style="width:200px" onclick="toggleAssets()"/>
 <input type="button" value="Toggle path visualization" style="width:200px" onclick="togglePathVisualization()"/>
 <!--<input type="button" value="Add Asset" style="width:200px" onclick="addAsset()"/>-->
@@ -47,6 +48,11 @@
         </div>
     </div>
     <div id="config"></div>
+</div>
+<div id="precomputingOverlay" style="width: 100vw; height: 100vh; background-color:rgba(0,0,0,0.75); position:absolute; top:0px; left:0px; display:none">
+    <div class="center-screen">
+        <h1 style="color:white;">Precomputing...</h1>
+    </div>
 </div>
 <div id="simulatingOverlay" style="width: 100vw; height: 100vh; background-color:rgba(0,0,0,0.75); position:absolute; top:0px; left:0px; display:none">
     <div class="center-screen">

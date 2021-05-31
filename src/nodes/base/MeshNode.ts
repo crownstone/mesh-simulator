@@ -1,5 +1,7 @@
 import {MeshNetwork} from "../../MeshNetwork";
 import {Util} from "../../util/Util";
+import {MeshQueue} from "./MeshQueue";
+import {EventBus} from "../../util/EventBus";
 
 
 type callback = () => void;
@@ -16,8 +18,11 @@ export class MeshNode {
 
   meshTimer : any;
 
+  queue: MeshQueue;
+
   constructor(macAddress?: macAddress) {
     this.macAddress = macAddress ?? Util.getMacAddress();
+    this.queue = new MeshQueue(20, 3);
   }
 
 
@@ -28,6 +33,7 @@ export class MeshNode {
   cleanup() {}
 
   stop() {
+    this.queue.reset();
     this.handled_messages = {};
     this.cleanup();
     for (let cleanupMethod of this.cleanupMethods) {
@@ -45,6 +51,7 @@ export class MeshNode {
   placeInMesh(mesh: MeshNetwork) {
     this.mesh = mesh;
     this.meshTimer = this.mesh.timer;
+    this.queue.timer = this.mesh.timer;
     this.init();
   }
 
@@ -53,7 +60,16 @@ export class MeshNode {
     if (ttl === undefined || repeats === undefined) { throw "TTL AND REPEATS IS REQUIRED"}
 
     if (this.mesh) {
-      this.mesh.broadcast(this.crownstoneId, this._wrapMessage(data), ttl, repeats)
+      let message = this._wrapMessage(data);
+      EventBus.emit("MeshBroadcastStarted", {
+        sender: this.macAddress,
+        messageId: message.id,
+        ttl, repeats: repeats
+      });
+
+      this._addToQueue(() => {
+        this.mesh.broadcast(this.crownstoneId, message, ttl, repeats)
+      });
     }
   }
 
@@ -64,12 +80,38 @@ export class MeshNode {
 
     if (this.mesh) {
       let message = this._wrapMessage(data);
-      for (let i = 0; i < transmissions; i++) {
+      EventBus.emit("MeshBroadcastStarted", {
+        sender: this.macAddress,
+        messageId: message.id,
+        ttl, repeats: transmissions
+      });
+
+      this._addToQueue(() => {
         this.mesh.broadcast(this.crownstoneId, message, ttl, 0);
-      }
+      }, transmissions);
     }
   }
 
+  _addToQueue(callback: callback, transmissions: number = 1) : boolean {
+    let fitsInQueue = this.queue.add(callback, transmissions);
+    this.queue.execute();
+
+    if (!fitsInQueue) {
+      EventBus.emit("QueueOverflow", {
+        address: this.macAddress,
+        transmissions: transmissions,
+      });
+    }
+
+    return fitsInQueue;
+  }
+
+
+  configureQueue(options: {maxSize?: number, flushCount?: number, tickDurationMs?: number}) {
+    if (options.maxSize)        { this.queue.setSize( options.maxSize );                 }
+    if (options.flushCount)     { this.queue.flushPerExecution = options.flushCount;     }
+    if (options.tickDurationMs) { this.queue.tickDurationMs    = options.tickDurationMs; }
+  }
 
   advertise(data?) {
     if (this.mesh) {

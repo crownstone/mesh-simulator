@@ -70,6 +70,9 @@ export class MeshSimulator {
       await this.run(message.data);
       this.server.send({type:"STATISTICS", data: this.statistics.nodes})
     }
+    else if (message.type == "CAN_EDIT_TOPOLOGY") {
+      this.server.send({type:"CAN_EDIT_TOPOLOGY", data: this.newTopologyPath !== null})
+    }
   }
 
   addNodes(nodes: MeshNode[]) {
@@ -128,16 +131,46 @@ export class MeshSimulator {
     this.addConnections(connections);
   }
 
-
-
-  async run(seconds: number) {
+  async prepare(seconds: number) {
     this.statistics.reset();
     this.statistics.initialize(this.network.nodeIdMap, this.network.nodes);
     if (this.server._connected) {
       this.server.send({type:"START_SIMULATION", data: seconds});
     }
     await this.network.runFor(seconds);
+  }
+
+  async run(seconds: number, precomputeSeconds: number = 0) {
+    this.statistics.reset();
+    this.statistics.initialize(this.network.nodeIdMap, this.network.nodes);
+
+    this.network.startNodes();
+    if (precomputeSeconds > 0) {
+      if (this.server._connected) {
+        this.server.send({type:"PRECOMPUTING", data: precomputeSeconds});
+      }
+
+      // run the precomputation step to reach steady-state;
+      await this.network.runFor(precomputeSeconds);
+
+      // reset statistics
+      this.statistics.reset();
+      this.statistics.initialize(this.network.nodeIdMap, this.network.nodes);
+    }
+
+
+    if (this.server._connected) {
+      this.server.send({type:"START_SIMULATION", data: seconds});
+    }
+
+    await this.network.runFor(seconds);
+
+    // wrap up the simulation timer and nodes
+    this.network.reset()
+
+    // do the final calculation on the statistics.
     this.statistics.finalize();
+
     if (this.server._connected) {
       this.server.send({type:"STATISTICS", data: this.statistics.nodes});
     }

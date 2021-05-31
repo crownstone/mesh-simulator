@@ -2,7 +2,7 @@
   "name": "mesh",
   "version": "1.0.0",
   "description": "",
-  "main": "index.js",
+  "main": "/dist/index.js",
   "scripts": {
     "start": "node expressServer.js",
     "dev": "tsc --watch",

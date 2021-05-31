@@ -95,6 +95,17 @@ There are a few methods you can override just like the example.
 >### `handleMeshMessage(source: crownstoneId, sentBy: macAddress, data, rssi: number, ttl: number, repeats: number)`
 > You get to handle a mesh message that you received sentBy macaddress. It originated from the source crownstoneId (number).
 
+
+>### `configureQueue(options: {maxSize?: number, flushCount?: number, tickDurationMs?: number})`
+> You can configure the mesh message queue. Each mesh message is loaded into the queue. Each tick it will transmit <flushCount> messages.
+> If you try to load more messages than maxSize allows, they will be discarded. The amount of repeats or transmissions does not matter for the queue maxSize.
+> Default values are: 
+> - maxSize = 20
+> - flushCount = 3
+> - tickDurationMs = 100
+
+
+
 # Simulator
 
 You have one class that does the magic.
@@ -110,8 +121,9 @@ It does everything for you. Here's its API.
 > This constructs the setup based on a json file. The classmap tells it how to use your custom classes for the basic types.
 > See examples for usage.
 
->### `async run(seconds: number)`
-> Run the simulation from start for the provided amount of seconds.
+>### `async run(seconds: number, precomputeSeconds: number = 0)`
+> Run the simulation from start for the provided amount of seconds. In case you're looking into the effects of the message queue,
+> you might need to use the precomputeSeconds argument to reach a steady-state before the statistics are gathered. 
 > Each run is individual and starts everything all over again.
 
 >### `async waitForConnection()`
@@ -144,10 +156,10 @@ http://localhost:3050
 At the top you see "Connected!" or "Disconnected..." which means it can see a simulation websocket server (started by an example).
 
 Then the buttons:
-- Run 20s: run the simulation for 20 seconds
-- Add Crownstone: If you allow the gui to change your topology, it will add a Crownstone
-- Add Edge: You won't see anything immediately, but drag a new edge from a node to another node. The simulation will run immediately after.
-- Delete selected: Delete selected things.
+- Run 50s: run the simulation for 50 seconds, 0s precompute.
+- Add Crownstone: If you allow the gui to change your topology, it will show up. On press, it will add a Crownstone.
+- Add Edge: If you allow the gui to change your topology, it will show up. On press, you won't see anything immediately, but drag a new edge from a node to another node. The simulation will run immediately after.
+- Delete selected: If you allow the gui to change your topology, it will show up. Delete selected things.
 - Toggle Asset visibility: show or hide the Assets (if there are any). You can show it to connect an asset to nodes.
 - Toggle Path visualization: choose between 2 modes of showing the path of a message.
 

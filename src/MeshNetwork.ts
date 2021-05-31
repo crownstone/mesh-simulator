@@ -18,10 +18,13 @@ export class MeshNetwork {
     this.timer.pause();
   }
 
-  runFor(seconds: number) {
+  startNodes() {
     for (let nodeId in this.nodes) {
       this.nodes[nodeId].start();
     }
+  }
+
+  runFor(seconds: number) {
     console.time("simulate")
     console.log("Start simulating for", seconds, "seconds");
     return new Promise<void>((resolve, reject) => {
@@ -30,12 +33,11 @@ export class MeshNetwork {
         console.log("Simulation completed.")
         console.timeEnd("simulate");
         this.timer.pause();
-        this.reset();
-
         resolve();
       }, seconds*1000);
     })
   }
+
 
   reset() {
     for (let nodeId in this.nodes) {
@@ -94,11 +96,18 @@ export class MeshNetwork {
     let connections = this.connectionMap[senderMacAddress] ?? [];
     content = {...content, path: [...content.path]};
     content.path.push(senderMacAddress);
+
+    EventBus.emit("MeshBroadcastQueued", {
+      sender: senderMacAddress,
+      messageId: content.id,
+      ttl, repeats
+    });
+
     for (let connection of connections) {
       if (this.nodes[connection.to].isCrownstone) {
         for (let i = 0; i <= repeats; i++) {
           let success = this._transmit("MESH_BROADCAST", sender, senderMacAddress, connection.to, connection.rssi, content, ttl, repeats);
-          EventBus.emit("MeshBroadcast", {
+          EventBus.emit("MeshBroadcastIndividual", {
             sender: senderMacAddress,
             receiver: connection.to,
             success,
