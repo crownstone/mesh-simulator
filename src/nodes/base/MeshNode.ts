@@ -1,5 +1,5 @@
 import {MeshNetwork} from "../../MeshNetwork";
-import {Util} from "../../util/util";
+import {Util} from "../../util/Util";
 
 
 type callback = () => void;
@@ -49,21 +49,27 @@ export class MeshNode {
   }
 
 
-  broadcast(data: message, ttl: number, repeats: number = 0) {
+  broadcast(data: message, ttl: number, repeats) {
+    if (ttl === undefined || repeats === undefined) { throw "TTL AND REPEATS IS REQUIRED"}
+
     if (this.mesh) {
       this.mesh.broadcast(this.crownstoneId, this._wrapMessage(data), ttl, repeats)
     }
   }
 
 
-  broadcastBurst(data: message, ttl: number, repeats: number = 4) {
+
+  broadcastBurst(data: message, ttl: number, transmissions: number) {
+    if (ttl === undefined || transmissions === undefined) { throw "TTL AND TRANSMISSIONS IS REQUIRED"}
+
     if (this.mesh) {
       let message = this._wrapMessage(data);
-      for (let i = 0; i <= repeats; i++) {
+      for (let i = 0; i < transmissions; i++) {
         this.mesh.broadcast(this.crownstoneId, message, ttl, 0);
       }
     }
   }
+
 
   advertise(data?) {
     if (this.mesh) {
@@ -71,17 +77,21 @@ export class MeshNode {
     }
   }
 
+
   allowMeshRelay(source: crownstoneId, target: crownstoneId, ttl: number) : boolean {
     return true;
   }
+
 
   handleAdvertisement(from: macAddress, data, rssi: number) {
     // overwrite by child node
   }
 
+
   handleMeshMessage(source: crownstoneId, sentBy: macAddress, data, rssi: number, ttl: number, repeats: number) {
     // overwrite by child node
   }
+
 
   _wrapMessage(data: message) : wrappedMessage {
     let wrappedMessage = {

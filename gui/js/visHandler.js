@@ -56,9 +56,13 @@ function initDOM() {
       SIM_OVERLAY.style.display = "none";
       loadStatistics(data.data);
 
-      console.log("selecting", [UNMODIFIED_DATA.nodes[0].id], NODES_DATASET.get()[0])
-      NETWORK.selectNodes([UNMODIFIED_DATA.nodes[0].id]);
-      showNodeStatistics(NODES_DATASET.get()[0]);
+      for (let node of UNMODIFIED_DATA.nodes) {
+        if (node.type === 'HUB') {
+          console.log("selecting", node.id);
+          NETWORK.selectNodes([node.id]);
+          showNodeStatistics(NODES_DATASET.get(node.id));
+        }
+      }
     }
     else if (data.type === "START_SIMULATION") {
       SIM_OVERLAY.style.display = "block";
@@ -239,6 +243,8 @@ function initVis() {
  * @param nodeData
  */
 function showNodeStatistics(nodeData) {
+  console.log("SHOWING DATA FROM", nodeData)
+
   SHOWING_NODE = nodeData;
   /** received advertisements:
    *    mac, x out of y (percentage)
@@ -267,29 +273,36 @@ function showNodeStatistics(nodeData) {
 
   for (let senderId in receivedMeshMessages) {
     let d = receivedMeshMessages[senderId];
+    let node = NODES_DATASET.get(senderId);
+    if (!node) { continue; }
+
     if (d.outOf === 0) {
-      nodeUpdates[senderId] = `0 % \n${d.count} out of ${d.outOf}`;
+      nodeUpdates[senderId] = {label:`0 % \n${d.count} out of ${d.outOf}\nCrownstoneId:${node.crownstoneId}`, color: '#ddd' };
     }
     else {
-      nodeUpdates[senderId] = `${((d.count / d.outOf)*100).toFixed(2)} % \n${d.count} out of ${d.outOf}`;
+      nodeUpdates[senderId] = {
+        label:`${((d.count / d.outOf)*100).toFixed(2)} % \n${d.count} out of ${d.outOf}\nCrownstoneId:${node.crownstoneId}`,
+        color: getEdgeSettings(d.count / d.outOf, '', -0.2, 0.8).color
+      };
     }
   }
 
   let nodeDetails = NODES_DATASET.get();
+  let updatedNodes = [];
   for (let nodeItem of nodeDetails) {
     for (let nodeId in nodeUpdates) {
       if (nodeItem.id === nodeId) {
-        nodeItem.label = nodeUpdates[nodeId] + "\nCrownstoneId:" + nodeItem.crownstoneId;
+        updatedNodes.push({...nodeItem, ...nodeUpdates[nodeId]});
         break;
       }
     }
     // this is the node that we clicked on
     if (nodeItem.id === nodeData.id) {
-      nodeItem.label = `${nodeData.crownstoneId} - Details in bottom left corner.`
+      updatedNodes.push({...nodeItem, size: 50, label: `${nodeData.crownstoneId} - Details in bottom left corner.`})
     }
   }
 
-  NODES_DATASET.update(nodeDetails);
+  NODES_DATASET.update(updatedNodes);
 
   DETAIL.innerHTML = `<table>` +
     `<tr><td>advertisements sent:</td><td colspan="2">${statistics.advertisements.sent.unique}</td></tr>` +
@@ -298,6 +311,7 @@ function showNodeStatistics(nodeData) {
     `<tr><td>mesh broadcasts sent:</td><td colspan="2">${statistics.meshBroadcasts.sent.unique}</td></tr>` +
     `<tr><td>mesh broadcasts relayed:</td><td colspan="2">${statistics.meshBroadcasts.relayed.unique}</td></tr>` +
     `<tr><td>mesh unneccesary duplicates sent:</td><td colspan="2">${statistics.meshBroadcasts.sentDuplicates.count}</td></tr>`
+
 
 }
 
@@ -334,10 +348,12 @@ function showNodePath(otherNode) {
   for (let node of UNMODIFIED_DATA.nodes) {
     nodeIdMap[node.id] = node.crownstoneId;
     let alteredNode = {...node, fixed: true}
-    if (node.id !== SHOWING_NODE.id && node.id !== otherNode.id) {
-      nodes.push({...alteredNode, color: 'rgb(200,200,200)'})
+    if (node.id !== SHOWING_NODE.id && node.id !== COMPARE_NODE.id) {
+      nodes.push({...alteredNode, color: '#ddd'})
     }
-    nodes.push(alteredNode)
+    else {
+      nodes.push(alteredNode)
+    }
   }
 
   let edgesModified = {};
@@ -438,14 +454,14 @@ function loadTopology(data) {
     if (node.type !== 'ASSET') {
       let visibleAssets = nodeMapSeeAssets[node.id];
       if (visibleAssets > 0) {
-        nodes.push({id: node.id, label: node.cid+":["+visibleAssets+"]",  type: node.type, crownstoneId: node.cid, visibleAssets, group: node.type + ':' + visibleAssets, shape: shapeMap[node.type], mass: massMap[node.type], fixed: false})
+        nodes.push({id: node.id, label: node.cid+":["+visibleAssets+"]", size: 30,  color: undefined, type: node.type, crownstoneId: node.cid, visibleAssets, group: node.type + ':' + visibleAssets, shape: shapeMap[node.type], mass: massMap[node.type], fixed: false})
       }
       else {
-        nodes.push({id: node.id, label: node.cid+": [0 assets in range]",  type: node.type, crownstoneId: node.cid, visibleAssets, group: node.type + ':0', shape: shapeMap[node.type], mass: massMap[node.type], fixed: false})
+        nodes.push({id: node.id, label: node.cid+": [0 assets in range]", size: 30, color: undefined,  type: node.type, crownstoneId: node.cid, visibleAssets, group: node.type + ':0', shape: shapeMap[node.type], mass: massMap[node.type], fixed: false})
       }
     }
     else {
-      let assetNode = {id: node.id, label: "Asset", crownstoneId: "Asset", intervalMs: node.intervalMs, type: node.type, group: node.type, shape: shapeMap[node.type], mass: massMap[node.type], fixed: true};
+      let assetNode = {id: node.id, label: "Asset", crownstoneId: "Asset", size: 30, color: undefined, intervalMs: node.intervalMs, type: node.type, group: node.type, shape: shapeMap[node.type], mass: massMap[node.type], fixed: true};
       if (SHOW_ASSETS === false) {
         TMP_ASSET_STORE.push(assetNode)
       }
@@ -507,13 +523,14 @@ function getEdgeSettings(ratio, label, rangeMin, rangeMax) {
   }
   else if (ratio > bounds[3]) {
     let factor = 1-Math.abs((ratio - bounds[2])/(bounds[2]-bounds[3]));
-    return {color: colors.purple.blend(colors.red, 1-factor).hex, width: baseWidth*0.4*0.4, label: label}
-
+    return {color: colors.csOrange.blend(colors.red, 1-factor).hex, width: baseWidth*0.4*0.4, label: label}
   }
   else {
     return {color: colors.darkRed.hex, width: baseWidth*0.4*0.4, opacity: 0.6, dashArray:"8, 12", label: label}
   }
 }
+
+
 
 
 function updateTopology() {

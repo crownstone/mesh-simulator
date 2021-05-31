@@ -55,7 +55,21 @@ If you want to make it more complex, edit it in the gui.
 You tell the MeshSimulator to use the topology from a file, and you tell it for each type (HUB, CROWNSTONE, ASSET) which class to use.
 This way you can provide your own classes to interact over the mesh.
 
-There are a few methods you can implement.
+Your custom classes will have to extend either the Hub, Crownstone or Asset classes provided by the simulator. Here's an example:
+
+```js
+const Sim = require("../../dist")
+
+class CrownstoneNode extends Sim.Crownstone {
+  // this custom Crownstone node class overrides the handleAdvertisement method to send a mesh burst broadcast each time
+  // it receives an advertisement.
+  handleAdvertisement(from, data, rssi) {
+    this.broadcastBurst({macAddress: from, rssi}, 5, 1);
+  }
+}
+```
+
+There are a few methods you can override just like the example.
 
 >### `start()`
 > This is called for you when the simulation starts
@@ -63,13 +77,13 @@ There are a few methods you can implement.
 >### `cleanup()`
 > This is called for you when the simulation ends. You can use it to clean up any subscribers.
 
->### `broadcast(data: message, ttl: number, repeats: number = 0)`
+>### `broadcast(data: message, ttl: number, repeats)`
 > Use this to send a (singlepart) message over the mesh. The data can be anything you want
 > Repeats here is the mesh-repeat method. This is not used in Crownstone (at the moment). We use burst repeat. See next.
 
 
->### `broadcastBurst(data: message, ttl: number, repeats: number = 4)`
-> This emulates how Crownstones send mesh mesasges. It sends a message 5 times (so repeat 4) in quick succession, but when 
+>### `broadcastBurst(data: message, ttl: number, transmissions: number)`
+> This emulates how Crownstones send mesh messages. If transmissions is set to 5, It sends 5 messages, but when 
 > another node receives it, it only relays it once. The mesh-repeat would also cause the relay to repeat.
 
 >### `advertise(data?)`

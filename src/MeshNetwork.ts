@@ -1,6 +1,6 @@
 import {MeshNode} from "./nodes/base/MeshNode";
 import {EventBus} from "./util/EventBus";
-import {Util} from "./util/util";
+import {Util} from "./util/Util";
 const hypertimer = require("hypertimer");
 
 let CHANNELS = [37,38,39];
@@ -75,7 +75,17 @@ export class MeshNetwork {
     }
   }
 
+  /**
+   * This method uses the mesh-repeat implementation. Each node which receives this message will repeat a relay with the same amount of repeats.
+   * A repeat value of 1 will send 2 messages in total.
+   * @param sender
+   * @param content
+   * @param ttl
+   * @param repeats
+   */
   broadcast(sender: crownstoneId, content : wrappedMessage, ttl: number, repeats: number) {
+    if (ttl === undefined || repeats === undefined) { throw "TTL AND REPEATS/TRANSMISSIONS IS REQUIRED"}
+
     let senderMacAddress = this.nodeIdMap[sender];
     if (!senderMacAddress) {
       console.warn("Something without a macAddress tried to send a mesh message");

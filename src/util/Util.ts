@@ -476,7 +476,7 @@ export const Util = {
       if (byte.length == 1) { byte = '0' + byte; }
       return byte;
     }
-    return `${getByte()}:${getByte()}:${getByte()}:${getByte()}:${getByte()}:${getByte()}`
+    return `${getByte()}:${getByte()}:${getByte()}:${getByte()}:${getByte()}:${getByte()}`.toUpperCase()
   }
 };
 

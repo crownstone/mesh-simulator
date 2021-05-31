@@ -5,7 +5,7 @@ import {SocketServer} from "./servers/socketServer";
 import {Hub} from "./nodes/Hub";
 import {Asset} from "./nodes/Asset";
 import {Crownstone} from "./nodes/Crownstone";
-import {Util} from "./util/util";
+import {Util} from "./util/Util";
 import * as fs from "fs";
 
 interface InputClassMap {
