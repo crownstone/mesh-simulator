@@ -168,9 +168,11 @@ export class StatisticsCollector {
       this.nodes[mac] = {
         type: this.nodeReference[mac].type,
         crownstoneId: this.nodeReference[mac].crownstoneId,
+        macAddress: mac,
+        assetTrackingPropagation: { senders: {} },
         advertisements: {
           sent:     { unique: 0, count: 0, receivers: {} },
-          received: { senders: {} },
+          received: { total: 0, outOf: 0, senders: {} },
         },
         meshBroadcasts: {
           started:   { unique: 0, count: 0 },
@@ -190,16 +192,37 @@ export class StatisticsCollector {
   }
 
   finalize() {
+    // First we collect and finalize all data regarding received advertisements
     for (let address in this.nodes) {
       let node = this.nodes[address];
-      let mesh = node.meshBroadcasts;
+      // check all the advertisement %
+      let advertisements = node.advertisements;
+      for (let senderAddress in advertisements.received.senders) {
+        let senderNode = this.nodes[senderAddress];
+        let sentAdvertisements = senderNode.advertisements.sent.unique;
+        advertisements.received.senders[senderAddress].outOf = sentAdvertisements;
+
+        advertisements.received.total += advertisements.received.senders[senderAddress].count;
+        advertisements.received.outOf += advertisements.received.senders[senderAddress].outOf;
+      }
+    }
+
+    // Then we collect and finalize all data regarding received mesh messages
+    for (let address in this.nodes) {
+      let node = this.nodes[address];
+
       // check all the sending %
+      let mesh = node.meshBroadcasts;
       for (let otherAddress in this.nodes) {
         if (address == otherAddress) { continue; }
         let senderNode = this.nodes[otherAddress];
         let sentMeshBroadcasts = senderNode.meshBroadcasts.started.unique;
         if (mesh.received.senders[otherAddress] === undefined) {
           mesh.received.senders[otherAddress] = { count: 0, outOf: 0, paths: {}}
+        }
+        node.assetTrackingPropagation.senders[otherAddress] = {
+          count: mesh.received.senders[otherAddress].count,
+          outOf: senderNode.advertisements.received.outOf
         }
         mesh.received.senders[otherAddress].outOf = sentMeshBroadcasts;
       }
@@ -218,14 +241,6 @@ export class StatisticsCollector {
       mesh.sentDuplicates.count = Object.keys(duplicateMap).length;
       // remove the receiver list since it's data is already processed.
       mesh.sentDuplicates.receivers = {};
-
-      // check all the advertisement %
-      let advertisements = node.advertisements;
-      for (let senderAddress in advertisements.received.senders) {
-        let senderNode = this.nodes[senderAddress];
-        let sentAdvertisements = senderNode.advertisements.sent.unique;
-        advertisements.received.senders[senderAddress].outOf = sentAdvertisements;
-      }
     }
   }
 

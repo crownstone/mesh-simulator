@@ -64,6 +64,9 @@ function showNodeStatistics(nodeData) {
   }
 
   let receivedMeshMessages = statistics.meshBroadcasts.received.senders;
+  if (SHOW_ASSET_PERCENTAGES) {
+    receivedMeshMessages = statistics.assetTrackingPropagation.senders;
+  }
   let nodeUpdates = {}
 
   for (let senderId in receivedMeshMessages) {

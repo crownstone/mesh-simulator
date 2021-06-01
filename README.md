@@ -105,7 +105,6 @@ There are a few methods you can override just like the example.
 > - tickDurationMs = 100
 
 
-
 # Simulator
 
 You have one class that does the magic.

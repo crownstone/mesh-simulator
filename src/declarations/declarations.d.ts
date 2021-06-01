@@ -79,9 +79,11 @@ interface StatisticsData {
   [macAddress:string] : {
     type: string,
     crownstoneId: number,
+    macAddress: macAddress,
+    assetTrackingPropagation: {senders: {}}
     advertisements: {
       sent: { unique: number, count: number, receivers: StatisticsSuccessRate },
-      received: { senders: StatisticsReceiveRate },
+      received: { total: number, outOf: number, senders: StatisticsReceiveRate },
     },
     meshBroadcasts: {
       started: { unique: number, count: number },

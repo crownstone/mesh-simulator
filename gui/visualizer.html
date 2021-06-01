@@ -27,10 +27,15 @@
             text-align: center;
             min-height: 100vh;
         }
+
+        div.buttons {
+            user-select:none;
+        }
     </style>
 </head>
 <body onload="init()">
 <div id="connectedState">Disconnected...</div>
+<div class="buttons">
 <input type="button" value="Run 50s" style="width:200px" onclick="runSimulation(50)"/>
 <!--<input type="button" value="Add Hub" style="width:200px" onclick="addHub()"/>-->
 <input id="topologyButtonAddNode" type="button" value="Add Crownstone"  style="display:none; width:200px" onclick="addCrownstone()"/>
@@ -38,8 +43,9 @@
 <input id="topologyButtonDelete"  type="button" value="Delete Selected" style="display:none; width:200px" onclick="deleteSelected()"/>
 <input type="button" value="Toggle asset visibility" style="width:200px" onclick="toggleAssets()"/>
 <input type="button" value="Toggle path visualization" style="width:200px" onclick="togglePathVisualization()"/>
-<!--<input type="button" value="Add Asset" style="width:200px" onclick="addAsset()"/>-->
+<input type="checkbox" id="assetPercentages" name="assetPercentages" checked onchange="togglePercentages(this)"><label for="assetPercentages">Show asset tracking percentages</label>
 <!--<input type="button" value="Random Topology" style="width:200px" onclick="randomTopology()"/>-->
+</div>
 <div id="networkContainer" style="display:block">
     <div style="position:relative;">
         <div id="meshTopology"></div>

@@ -9,6 +9,8 @@ let TOPOLOGY_BUTTON_ADD_NODE;
 let TOPOLOGY_BUTTON_ADD_EDGE;
 let TOPOLOGY_BUTTON_DELETE;
 
+let SHOW_ASSET_PERCENTAGES = true;
+
 
 let INDIVIDUAL_PATH_VISUALIZATION = true;
 let SHOW_ASSETS = false;
@@ -498,6 +500,18 @@ function togglePathVisualization() {
     EDGES_DATASET.clear()
     EDGES_DATASET.add(UNMODIFIED_DATA.edges)
     showNodePath(COMPARE_NODE);
+  }
+}
+
+function togglePercentages(item) {
+  if (item.checked) {
+    SHOW_ASSET_PERCENTAGES = true;
+  }
+  else {
+    SHOW_ASSET_PERCENTAGES = false;
+  }
+  if (SHOWING_NODE) {
+    showNodeStatistics(SHOWING_NODE);
   }
 }
 
