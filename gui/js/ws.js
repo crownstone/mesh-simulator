@@ -78,4 +78,5 @@ const CLIENT = new SocketClient()
 function init() {
   CLIENT.connect();
   initDOM();
+  initVis()
 }

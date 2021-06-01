@@ -46,6 +46,16 @@ export class MeshNetwork {
     this.timer.clear()
   }
 
+  clearTopology() {
+    for (let nodeId in this.nodes) {
+      this.nodes[nodeId].stop();
+    }
+    this.nodeIdMap = {};
+    this.nodes = {};
+    this.connections = {};
+    this.connectionMap = {};
+  }
+
   addNode(node: MeshNode) {
     this.nodes[node.macAddress] = node;
     if (node.crownstoneId) {
@@ -64,6 +74,8 @@ export class MeshNetwork {
     if (typeof rssi === 'number') {
       rssi = {37: rssi, 38: rssi, 39: rssi};
     }
+
+    if (!this.nodes[from] || !this.nodes[to]) { return; }
 
     if (this.connections[`${from}_${to}`] === undefined) {
       if (this.connectionMap[from] === undefined) { this.connectionMap[from] = []; }
@@ -85,7 +97,7 @@ export class MeshNetwork {
    * @param ttl
    * @param repeats
    */
-  broadcast(sender: crownstoneId, content : wrappedMessage, ttl: number, repeats: number) {
+  broadcast(sender: crownstoneId, content : wrappedMessage, ttl: number, repeats: number, target: crownstoneId = null) {
     if (ttl === undefined || repeats === undefined) { throw "TTL AND REPEATS/TRANSMISSIONS IS REQUIRED"}
 
     let senderMacAddress = this.nodeIdMap[sender];
@@ -106,7 +118,7 @@ export class MeshNetwork {
     for (let connection of connections) {
       if (this.nodes[connection.to].isCrownstone) {
         for (let i = 0; i <= repeats; i++) {
-          let success = this._transmit("MESH_BROADCAST", sender, senderMacAddress, connection.to, connection.rssi, content, ttl, repeats);
+          let success = this._transmit("MESH_BROADCAST", sender, senderMacAddress, connection.to, connection.rssi, content, ttl, repeats, target);
           EventBus.emit("MeshBroadcastIndividual", {
             sender: senderMacAddress,
             receiver: connection.to,
@@ -149,7 +161,16 @@ export class MeshNetwork {
   }
 
 
-  _transmit(messageType: MessageType, source: crownstoneId, sentBy: macAddress, to: macAddress, rssi: {37: number, 38: number, 39: number}, content: wrappedMessage, ttl: number, repeats: number, target : crownstoneId = null) {
+  _transmit(
+    messageType: MessageType,
+    source: crownstoneId,
+    sentBy: macAddress,
+    to: macAddress,
+    rssi: {37: number, 38: number, 39: number},
+    content: wrappedMessage,
+    ttl: number,
+    repeats: number,
+    target : crownstoneId = null) {
     // mark this message as handled by the sender. This would result in no incorrect roundtrips.
     this.nodes[sentBy].handled_messages[content.id] = true;
 
@@ -203,16 +224,18 @@ export class MeshNetwork {
           this.nodes[to].handleAdvertisement(sentBy, content.data, rssiValue);
         }
         else if (messageType === "MESH_BROADCAST") {
-          EventBus.emit("MessageReceived", {
-            source: source,
-            sender: sentBy,
-            receiver: to,
-            relayId: content.relayId,
-            messageId: content.id,
-            path: [...content.path, to],
-            ttl, repeats
-          });
-          this.nodes[to].handleMeshMessage(source, sentBy, content.data, rssiValue, ttl, repeats);
+          if (this.nodes[to].crownstoneId === target || target === null) {
+            EventBus.emit("MessageReceived", {
+              source: source,
+              sender: sentBy,
+              receiver: to,
+              relayId: content.relayId,
+              messageId: content.id,
+              path: [...content.path, to],
+              ttl, repeats
+            });
+            this.nodes[to].handleMeshMessage(source, sentBy, content.data, rssiValue, ttl, repeats);
+          }
           let newTTL = ttl-1;
           if (newTTL > 0) {
             this._relay(source, this.nodes[to].macAddress, {...content}, newTTL, repeats, target);
@@ -226,16 +249,15 @@ export class MeshNetwork {
 
   _relay(source: crownstoneId, senderMacAddress: macAddress, content : wrappedMessage, ttl: number, repeats: number, target: crownstoneId) {
     let connections = this.connectionMap[senderMacAddress] ?? [];
-    if (target !== null) {
-      if (this.nodes[senderMacAddress].allowMeshRelay(source, target, ttl) === false) {
-        EventBus.emit("MeshRelayDenied", {
-          sender: senderMacAddress,
-          target: target,
-          messageId: content.id,
-          ttl, repeats
-        });
-        return;
-      }
+    if (this.nodes[senderMacAddress].allowMeshRelay(source, target, ttl) === false) {
+      EventBus.emit("MeshRelayDenied", {
+        source: source,
+        deniedBy: senderMacAddress,
+        target: target,
+        messageId: content.id,
+        ttl, repeats
+      });
+      return;
     }
     content.relayId = Util.getUUID();
     content.path = [...content.path];

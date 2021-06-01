@@ -1,0 +1,1 @@
+The research folder is used for testing different scenarios. This is not part of the examples.

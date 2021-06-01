@@ -31,9 +31,7 @@ export class StatisticsCollector {
     for (let nodeId in this.nodeReference) {
       this._ensureNode(nodeId);
     }
-    // this.subscriptions.push(EventBus.on("MeshRelayDenied", (data) => {
-    //
-    // }))
+    this.subscriptions.push(EventBus.on("MeshRelayDenied",              this.handleRelayDenied.bind(this)));
     this.subscriptions.push(EventBus.on("MeshRelay",                    this.handleMeshRelay.bind(this)))
     this.subscriptions.push(EventBus.on("DuplicateReceived",            this.handleDuplicateReceived.bind(this)))
     this.subscriptions.push(EventBus.on("MessageReceived",              this.handleMessageReceived.bind(this)))
@@ -50,6 +48,10 @@ export class StatisticsCollector {
     item.meshBroadcasts.queueOverflow.count += 1;
   }
 
+  handleRelayDenied(data: MeshRelayDeniedEvent) {
+    let item = this._ensureNode(data.deniedBy);
+    item.meshBroadcasts.blocked.count += 1;
+  }
 
   handleBroadcastSent(data: MeshBroadcastEvent) {
     let item = this._ensureNode(data.sender);
@@ -184,7 +186,7 @@ export class StatisticsCollector {
 
           received: { senders: {} },
           sentDuplicates: { count: 0, receivers: {} },
-          blocked:  { receivers: {} }
+          blocked:  { count: 0 }
         }
       }
     }

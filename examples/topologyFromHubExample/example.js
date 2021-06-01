@@ -51,8 +51,8 @@ async function runExample() {
 
   // create the simulator and load the nodes and connections
   let simulator = new Sim.MeshSimulator();
-  simulator.addNodes(simTopology.nodes);
-  simulator.addConnections(simTopology.connections);
+  simulator.setNodes(simTopology.nodes);
+  simulator.setConnections(simTopology.connections);
 
   // wait for the gui to connect
   await simulator.waitForConnection();

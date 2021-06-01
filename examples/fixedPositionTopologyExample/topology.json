@@ -1,0 +1,22 @@
+{
+    "nodes": [
+        {"id": 1, "position": {"x":0, "y": 0},   "type":"HUB"},
+        {"id": 2, "position": {"x":0, "y": 50},  "type":"CROWNSTONE"},
+        {"id": 3, "position": {"x":0, "y": 100}, "type":"CROWNSTONE"},
+        {"id": 4, "position": {"x":0, "y": 200}, "type":"CROWNSTONE"},
+        {"id": 5, "position": {"x":0, "y": 300}, "type":"CROWNSTONE"},
+        {"id": 6, "position": {"x":0, "y": 400}, "type":"CROWNSTONE"}
+    ],
+    "assets": [
+        {"id": 7, "type":"ASSET", "intervalMs": 100}
+    ],
+    "connections": [
+        {"from": 1, "to": 3},
+        {"from": 1, "to": 4},
+        {"from": 1, "to": 5},
+        {"from": 4, "to": 6},
+        {"from": 6, "to": 7},
+        {"from": 6, "to": 2},
+        {"from": 3, "to": 2}
+    ]
+}

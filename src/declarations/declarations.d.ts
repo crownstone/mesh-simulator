@@ -31,6 +31,14 @@ interface MeshQueueOverflowEvent {
   tranmissions: number
 }
 
+interface MeshRelayDeniedEvent {
+  source: crownstoneId,
+  deniedBy: macAddress,
+  target: crownstoneId,
+  messageId: string,
+  ttl : number,
+  repeats: number
+}
 
 interface MeshBroadcastStartedEvent {
   sender: macAddress,
@@ -93,7 +101,7 @@ interface StatisticsData {
       queueOverflow: {count: number},
       received: { senders: StatisticsReceiveData }
       sentDuplicates: { count: number, receivers: { [macAddress: string]: string[] }},
-      blocked: { receivers: StatisticsSuccessRate}
+      blocked: { count: number }
     }
   }
 }
@@ -135,18 +143,21 @@ interface InputTopology {
   connections: InputTopologyConnection[],
 }
 
-interface InputTopologyNode {
-  id: number,
-  macAddress?: macAddress
+interface InputTopologyNode extends InputTopologyBaseNode {
   crownstoneId?: number
-  type: DeviceType,
 }
 
-interface InputTopologyAssetNode {
-  id: number,
-  macAddress?: macAddress
+interface InputTopologyAssetNode extends InputTopologyBaseNode {
   intervalMs: number,
 }
+
+interface InputTopologyBaseNode {
+  id: number,
+  macAddress?: macAddress
+  type: DeviceType,
+  position?: {x: number, y: number}
+}
+
 interface InputTopologyConnection {
   from: number | macAddress,
   to:   number | macAddress,

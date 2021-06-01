@@ -20,6 +20,9 @@ export class MeshNode {
 
   queue: MeshQueue;
 
+  // position used for gui purposes.
+  position = {x: null, y: null}
+
   constructor(macAddress?: macAddress) {
     this.macAddress = macAddress ?? Util.getMacAddress();
     this.queue = new MeshQueue(20, 3);
@@ -56,7 +59,7 @@ export class MeshNode {
   }
 
 
-  broadcast(data: message, ttl: number, repeats) {
+  broadcast(data: message, ttl: number, repeats, target: crownstoneId = null) {
     if (ttl === undefined || repeats === undefined) { throw "TTL AND REPEATS IS REQUIRED"}
 
     if (this.mesh) {
@@ -68,14 +71,12 @@ export class MeshNode {
       });
 
       this._addToQueue(() => {
-        this.mesh.broadcast(this.crownstoneId, message, ttl, repeats)
+        this.mesh.broadcast(this.crownstoneId, message, ttl, repeats, target)
       });
     }
   }
 
-
-
-  broadcastBurst(data: message, ttl: number, transmissions: number) {
+  broadcastBurst(data: message, ttl: number, transmissions: number, target: crownstoneId = null) {
     if (ttl === undefined || transmissions === undefined) { throw "TTL AND TRANSMISSIONS IS REQUIRED"}
 
     if (this.mesh) {
@@ -87,7 +88,7 @@ export class MeshNode {
       });
 
       this._addToQueue(() => {
-        this.mesh.broadcast(this.crownstoneId, message, ttl, 0);
+        this.mesh.broadcast(this.crownstoneId, message, ttl, 0, target);
       }, transmissions);
     }
   }

@@ -1,16 +1,7 @@
-let VIS_CONTAINER;
-let TOKEN_INPUT_WRAPPER;
-let CONNECTED_STATE;
-let GRAPH_WRAPPER;
-let SIM_OVERLAY;
-let PRECOMPUTE_OVERLAY;
-let DETAIL;
-let TOPOLOGY_BUTTON_ADD_NODE;
-let TOPOLOGY_BUTTON_ADD_EDGE;
-let TOPOLOGY_BUTTON_DELETE;
+
 
 let SHOW_ASSET_PERCENTAGES = true;
-
+let IGNORE_ADD_EVENT = false;
 
 let INDIVIDUAL_PATH_VISUALIZATION = true;
 let SHOW_ASSETS = false;
@@ -43,64 +34,6 @@ let GROUP_COLORS = [
   colors.blue3,
   colors.darkRed,
 ];
-
-function initDOM() {
-  GRAPH_WRAPPER            = document.getElementById("networkContainer");
-  CONNECTED_STATE          = document.getElementById("connectedState");
-  DETAIL                   = document.getElementById("detail");
-  VIS_CONTAINER            = document.getElementById("meshTopology");
-  SIM_OVERLAY              = document.getElementById("simulatingOverlay");
-  PRECOMPUTE_OVERLAY       = document.getElementById("precomputingOverlay");
-  TOPOLOGY_BUTTON_ADD_NODE = document.getElementById("topologyButtonAddNode");
-  TOPOLOGY_BUTTON_ADD_EDGE = document.getElementById("topologyButtonAddEdge");
-  TOPOLOGY_BUTTON_DELETE   = document.getElementById("topologyButtonDelete");
-
-  EVENTBUS.on("Connected", () => {
-    CONNECTED_STATE.innerHTML = "Connected!";
-    CLIENT.send({type:"GET_TOPOLOGY"})
-    CLIENT.send({type:"CAN_EDIT_TOPOLOGY"})
-  })
-  EVENTBUS.on("Disconnected", () => { CONNECTED_STATE.innerHTML = "Disconnected..."})
-  EVENTBUS.on("Message", (data) => {
-    if (data.type === "TOPOLOGY") {
-      loadTopology(data.data);
-    }
-    else if (data.type === "STATISTICS") {
-      PRECOMPUTE_OVERLAY.style.display = "none";
-      SIM_OVERLAY.style.display = "none";
-      loadStatistics(data.data);
-
-      for (let node of UNMODIFIED_DATA.nodes) {
-        if (node.type === 'HUB') {
-          console.log("selecting", node.id);
-          NETWORK.selectNodes([node.id]);
-          showNodeStatistics(NODES_DATASET.get(node.id));
-        }
-      }
-    }
-    else if (data.type === "PRECOMPUTING") {
-      PRECOMPUTE_OVERLAY.style.display = "block";
-      SIM_OVERLAY.style.display = "none";
-    }
-    else if (data.type === "START_SIMULATION") {
-      PRECOMPUTE_OVERLAY.style.display = "none";
-      SIM_OVERLAY.style.display = "block";
-    }
-    else if (data.type === "CAN_EDIT_TOPOLOGY") {
-      if (data.data === true) {
-        TOPOLOGY_BUTTON_ADD_NODE.style.display = "inline-block";
-        TOPOLOGY_BUTTON_ADD_EDGE.style.display = "inline-block";
-        TOPOLOGY_BUTTON_DELETE.style.display   = "inline-block";
-      }
-      else {
-        TOPOLOGY_BUTTON_ADD_NODE.style.display = "none";
-        TOPOLOGY_BUTTON_ADD_EDGE.style.display = "none";
-        TOPOLOGY_BUTTON_DELETE.style.display   = "none";
-      }
-    }
-  })
-  initVis();
-}
 
 function initVis() {
   // create a dataSet with groups
@@ -157,6 +90,8 @@ function initVis() {
   // NETWORK = new vis.Network(VIS_CONTAINER,  getScaleFreeNetwork(25), options);
 
   EDGES_DATASET.on('add', (event, properties, senderId) => {
+    if (IGNORE_ADD_EVENT) { return; }
+
     if (properties.items.length === 1) {
       let edge = {...EDGES_DATASET.get(properties.items[0])};
       let fromNode = NODES_DATASET.get(edge.from);
@@ -185,7 +120,10 @@ function initVis() {
     if (data.nodes.length === 1) {
       let node = NODES_DATASET.get(data.nodes[0]);
       if (node.fixed !== DRAG_FIXED_CACHE) {
-        node.fixed = DRAG_FIXED_CACHE
+        node.fixed = DRAG_FIXED_CACHE;
+        let position = NETWORK.getPositions([node.id])[node.id];
+        node.x = position.x;
+        node.y = position.y;
         NODES_DATASET.update(node);
       }
     }
@@ -236,84 +174,6 @@ function initVis() {
 
 
 
-function loadTopology(data) {
-  let nodes = [];
-  let edges = [];
-
-
-  let shapeMap = {
-    ASSET:      'diamond',
-    HUB:        'star',
-    CROWNSTONE: 'dot'
-  }
-  let massMap = {
-    ASSET:      5,
-    HUB:        5,
-    CROWNSTONE: 2,
-  }
-
-  let nodeMap = {};
-  let nodeMapSeeAssets = {};
-  for (let node of data.nodes) {
-    nodeMap[node.id] = node.type;
-  }
-
-  TMP_ASSET_STORE = []
-
-  for (let edge of data.edges) {
-    let newEdge = {...edge, ...getEdgeSettingsRssi(edge.rssi), physics: true}
-    if (nodeMap[newEdge.from] === "ASSET" && nodeMap[newEdge.to] !== "ASSET") {
-      if (nodeMapSeeAssets[newEdge.to] === undefined) { nodeMapSeeAssets[newEdge.to] = 0; }
-      nodeMapSeeAssets[newEdge.to]++;
-      newEdge.physics = false;
-      newEdge.smooth = false;
-      newEdge.label = '';
-      newEdge.color = "rgba(0,0,0,0.20)"
-    }
-    if (nodeMap[newEdge.to] === "ASSET" && nodeMap[newEdge.from] !== "ASSET") {
-      if (nodeMapSeeAssets[newEdge.from] === undefined) { nodeMapSeeAssets[newEdge.from] = 0; }
-      nodeMapSeeAssets[newEdge.from]++;
-      newEdge.physics = false;
-      newEdge.smooth = false;
-      newEdge.label = '';
-      newEdge.color = "rgba(0,0,0,0.20)"
-    }
-    edges.push(newEdge);
-  }
-
-  for (let node of data.nodes) {
-    if (node.type !== 'ASSET') {
-      let visibleAssets = nodeMapSeeAssets[node.id];
-      if (visibleAssets > 0) {
-        nodes.push({id: node.id, label: node.cid+":["+visibleAssets+"]", size: 30,  color: undefined, type: node.type, crownstoneId: node.cid, visibleAssets, group: node.type + ':' + visibleAssets, shape: shapeMap[node.type], mass: massMap[node.type], fixed: false})
-      }
-      else {
-        nodes.push({id: node.id, label: node.cid+": [0 assets in range]", size: 30, color: undefined,  type: node.type, crownstoneId: node.cid, visibleAssets, group: node.type + ':0', shape: shapeMap[node.type], mass: massMap[node.type], fixed: false})
-      }
-    }
-    else {
-      let assetNode = {id: node.id, label: "Asset", crownstoneId: "Asset", size: 30, color: undefined, intervalMs: node.intervalMs, type: node.type, group: node.type, shape: shapeMap[node.type], mass: massMap[node.type], fixed: true};
-      if (SHOW_ASSETS === false) {
-        TMP_ASSET_STORE.push(assetNode)
-      }
-      else {
-        nodes.push(assetNode);
-      }
-    }
-  }
-
-  NODES_DATASET.clear();
-  EDGES_DATASET.clear();
-  NODES_DATASET.add(nodes);
-  EDGES_DATASET.add(edges);
-  NETWORK.stabilize(300)
-
-  let loadedEdges = EDGES_DATASET.get();
-  UNMODIFIED_DATA = {nodes: nodes, edges: []};
-  for (let edge of loadedEdges) {
-    UNMODIFIED_DATA.edges.push({...edge})
-  }
-}
 
 
 function loadStatistics(data) {
@@ -364,38 +224,6 @@ function getEdgeSettings(ratio, label, rangeMin, rangeMax) {
 
 
 
-function updateTopology() {
-  let nodes = [];
-  let edges = [];
-  let assets = [];
-
-  for (let node of UNMODIFIED_DATA.nodes) {
-    nodes.push({id: node.id, macAddress: node.id, crownstoneId: node.crownstoneId, type: node.type})
-  }
-  for (let asset of TMP_ASSET_STORE) {
-    assets.push({id: asset.id, macAddress: asset.id, intervalMs: asset.intervalMs, type: asset.type})
-  }
-  if (assets.length === 0) {
-    let nodes = NODES_DATASET.get();
-    for (let node of nodes) {
-      if (node.type === "ASSET") {
-        assets.push({id: node.id, macAddress: node.id, intervalMs: node.intervalMs, type: node.type})
-      }
-    }
-  }
-  for (let edge of UNMODIFIED_DATA.edges) {
-    edges.push({from: edge.from, to: edge.to, rssi: edge.rssi});
-  }
-
-  CLIENT.send({
-    type:"UPDATE_TOPOLOGY",
-    data: {
-      nodes: nodes,
-      assets: assets,
-      connections: edges,
-    }
-  })
-}
 
 function getEdgeSettingsRssi(rssi = -80) {
   if (typeof rssi ==='object') {
@@ -444,7 +272,6 @@ function addCrownstone() {
   let id = 0;
   for (let node of UNMODIFIED_DATA.nodes) {
     if (node.type !== "ASSET" && node.crownstoneId) {
-      console.log("Check", id, node.crownstoneId)
       id = Math.max(id, Number(node.crownstoneId));
     }
   }
@@ -461,6 +288,7 @@ function addEdge() {
 function deleteSelected() {
   let selectedEdges = NETWORK.getSelectedEdges();
   let selectedNodes = NETWORK.getSelectedNodes();
+
 
   for (let i = UNMODIFIED_DATA.nodes.length - 1; i >= 0; i--) {
     if (selectedNodes.indexOf(UNMODIFIED_DATA.nodes[i].id) !== -1) {

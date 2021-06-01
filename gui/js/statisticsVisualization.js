@@ -120,7 +120,8 @@ function showNodePath(otherNode) {
 
   let statistics = SHOWING_NODE.statistics;
   if (!statistics) { return }
-  let meshRecevied = statistics.meshBroadcasts.received.senders[otherNode.id]
+  let meshRecevied = statistics.meshBroadcasts.received.senders[otherNode.id];
+  if (!meshRecevied) { return }
   let total = meshRecevied.count;
   let pathData = meshRecevied.paths;
   let paths = Object.keys(pathData);

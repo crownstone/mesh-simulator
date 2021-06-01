@@ -1,0 +1,144 @@
+{
+    "nodes": [
+        {
+            "id": "49:5d:fe:77:1a:08",
+            "macAddress": "49:5d:fe:77:1a:08",
+            "crownstoneId": "1",
+            "type": "HUB"
+        },
+        {
+            "id": "2a:9d:7e:c8:1f:d1",
+            "macAddress": "2a:9d:7e:c8:1f:d1",
+            "crownstoneId": "11",
+            "type": "CROWNSTONE"
+        },
+        {
+            "id": "13:fe:ef:ba:60:14",
+            "macAddress": "13:fe:ef:ba:60:14",
+            "crownstoneId": "12",
+            "type": "CROWNSTONE"
+        },
+        {
+            "id": "c9:50:03:6a:52:d1",
+            "macAddress": "c9:50:03:6a:52:d1",
+            "crownstoneId": 13,
+            "type": "CROWNSTONE"
+        },
+        {
+            "id": "b9:a4:83:58:f6:1c",
+            "macAddress": "b9:a4:83:58:f6:1c",
+            "crownstoneId": 14,
+            "type": "CROWNSTONE"
+        },
+        {
+            "id": "71:2d:d4:15:80:e0",
+            "macAddress": "71:2d:d4:15:80:e0",
+            "crownstoneId": 15,
+            "type": "CROWNSTONE"
+        },
+        {
+            "id": "de:2a:30:60:8b:bf",
+            "macAddress": "de:2a:30:60:8b:bf",
+            "crownstoneId": "Asset",
+            "type": "ASSET"
+        }
+    ],
+    "assets": [
+        {
+            "id": "de:2a:30:60:8b:bf",
+            "macAddress": "de:2a:30:60:8b:bf",
+            "intervalMs": 100,
+            "type": "ASSET"
+        }
+    ],
+    "connections": [
+        {
+            "from": "60:23:ce:af:ea:f4",
+            "to": "de:2a:30:60:8b:bf"
+        },
+        {
+            "from": "2a:9d:7e:c8:1f:d1",
+            "to": "49:5d:fe:77:1a:08"
+        },
+        {
+            "from": "de:2a:30:60:8b:bf",
+            "to": "13:46:b9:0c:be:84"
+        },
+        {
+            "from": "de:2a:30:60:8b:bf",
+            "to": "4e:2d:47:1b:77:a2"
+        },
+        {
+            "from": "de:2a:30:60:8b:bf",
+            "to": "45:bc:c0:f5:f5:df"
+        },
+        {
+            "from": "13:fe:ef:ba:60:14",
+            "to": "2a:9d:7e:c8:1f:d1"
+        },
+        {
+            "from": "de:2a:30:60:8b:bf",
+            "to": "53:06:b6:34:e5:0f"
+        },
+        {
+            "from": "de:2a:30:60:8b:bf",
+            "to": "c4:3c:2e:08:ca:3e"
+        },
+        {
+            "from": "de:2a:30:60:8b:bf",
+            "to": "13:fe:ef:ba:60:14"
+        },
+        {
+            "from": "de:2a:30:60:8b:bf",
+            "to": "a0:23:43:21:f4:5a"
+        },
+        {
+            "from": "de:2a:30:60:8b:bf",
+            "to": "c1:73:c8:70:7d:0f"
+        },
+        {
+            "from": "de:2a:30:60:8b:bf",
+            "to": "2a:9d:7e:c8:1f:d1"
+        },
+        {
+            "from": "de:2a:30:60:8b:bf",
+            "to": "42:d2:47:89:7c:17"
+        },
+        {
+            "from": "de:2a:30:60:8b:bf",
+            "to": "de:3d:f7:4f:fa:de"
+        },
+        {
+            "from": "de:2a:30:60:8b:bf",
+            "to": "06:4b:ce:c1:6a:e5"
+        },
+        {
+            "from": "de:2a:30:60:8b:bf",
+            "to": "57:1b:4c:f7:4e:a8"
+        },
+        {
+            "from": "de:2a:30:60:8b:bf",
+            "to": "b9:a4:83:58:f6:1c"
+        },
+        {
+            "from": "de:2a:30:60:8b:bf",
+            "to": "c9:50:03:6a:52:d1"
+        },
+        {
+            "from": "13:fe:ef:ba:60:14",
+            "to": "b9:a4:83:58:f6:1c"
+        },
+        {
+            "from": "b9:a4:83:58:f6:1c",
+            "to": "c9:50:03:6a:52:d1"
+        },
+        {
+            "from": "71:2d:d4:15:80:e0",
+            "to": "c9:50:03:6a:52:d1"
+        },
+        {
+            "from": "de:2a:30:60:8b:bf",
+            "to": "71:2d:d4:15:80:e0"
+        }
+    ]
+}

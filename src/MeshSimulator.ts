@@ -27,6 +27,7 @@ export class MeshSimulator {
   server:     SocketServer;
 
   topology = {nodes: [], connections: []};
+
   newTopologyPath = null;
   inputClassMap: InputClassMap;
 
@@ -49,22 +50,29 @@ export class MeshSimulator {
   async messageHandler(message) {
     if (typeof message !== 'object') { return; }
 
-    if (message.type == "UPDATE_TOPOLOGY") {
-      if (this.newTopologyPath !== null) {
-        fs.writeFileSync(this.newTopologyPath, JSON.stringify(message.data, undefined, 4));
-        this.setTopologyFromFile(this.newTopologyPath, this.inputClassMap);
-        await this.run(10);
-        this.server.send({type:"STATISTICS", data: this.statistics.nodes})
-      }
-    }
-    else if (message.type == "GET_TOPOLOGY") {
+    let sendTopology = () => {
       let data = {
         nodes: [],
         edges: []
       };
-      for (let node of this.topology.nodes)               { data.nodes.push({id: node.macAddress, cid: node.crownstoneId, type: node.type, intervalMs: node.intervalMs}); }
-      for (let connection of this.topology.connections)   { data.edges.push(connection); }
+      for (let node of this.topology.nodes) {
+        data.nodes.push({id: node.macAddress, cid: node.crownstoneId, type: node.type, intervalMs: node.intervalMs, position: node.position});
+      }
+      for (let connection of this.topology.connections) {
+        data.edges.push(connection);
+      }
       this.server.send({type:"TOPOLOGY", data: data});
+    }
+
+    if (message.type == "UPDATE_TOPOLOGY") {
+      if (this.newTopologyPath !== null) {
+        fs.writeFileSync(this.newTopologyPath, JSON.stringify(message.data, undefined, 4));
+        this.setTopologyFromFile(this.newTopologyPath, this.inputClassMap);
+        sendTopology();
+      }
+    }
+    else if (message.type == "GET_TOPOLOGY") {
+      sendTopology();
     }
     else if (message.type == "RUN_SIMULATION") {
       await this.run(message.data);
@@ -75,14 +83,15 @@ export class MeshSimulator {
     }
   }
 
-  addNodes(nodes: MeshNode[]) {
+  setNodes(nodes: MeshNode[]) {
     this.topology.nodes = nodes;
     for (let node of nodes) {
       this.network.addNode(node);
     }
+
   }
 
-  addConnections(connections: Connection[]) {
+  setConnections(connections: Connection[]) {
     this.topology.connections = connections;
     for (let connection of connections) {
       this.network.addConnection(connection)
@@ -101,12 +110,18 @@ export class MeshSimulator {
     let nodes = [];
     let connections = [];
 
-    let idMap = {}
+    let idMap = {};
     for (let node of topology.nodes) {
       if (node.type !== "ASSET") {
         let constructor = classMap[node.type] ?? DEFAULT_CLASS_MAP[node.type];
         let id = node.crownstoneId ?? node.id;
         let item = new constructor(id, node.macAddress ?? Util.getMacAddress());
+
+        if (node.position && typeof node.position.x === "number" && typeof node.position.y === "number") {
+          item.position.x = node.position.x;
+          item.position.y = node.position.y;
+        }
+
         idMap[id] = item.macAddress;
         nodes.push(item);
       }
@@ -114,6 +129,12 @@ export class MeshSimulator {
     for (let node of topology.assets) {
       let constructor = classMap.ASSET ?? DEFAULT_CLASS_MAP.ASSET;
       let item = new constructor(node.intervalMs, node.macAddress ?? Util.getMacAddress());
+
+      if (node.position && typeof node.position.x === "number" && typeof node.position.y === "number") {
+        item.position.x = node.position.x;
+        item.position.y = node.position.y;
+      }
+
       idMap[node.id] = item.macAddress;
       nodes.push(item);
     }
@@ -121,14 +142,16 @@ export class MeshSimulator {
     for (let connection of topology.connections) {
       let fromMac = connection.from;
       let toMac   = connection.to;
+
       if (typeof connection.from === 'number') { fromMac = idMap[connection.from]; }
       if (typeof connection.to   === 'number') { toMac   = idMap[connection.to];   }
 
       connections.push({from: fromMac, to: toMac, rssi: connection.rssi})
     }
 
-    this.addNodes(nodes);
-    this.addConnections(connections);
+    this.network.clearTopology();
+    this.setNodes(nodes);
+    this.setConnections(connections);
   }
 
   async prepare(seconds: number) {
