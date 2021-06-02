@@ -279,5 +279,4 @@ export class StatisticsCollector {
       mesh.sentDuplicates.receivers = {};
     }
   }
-
 }
