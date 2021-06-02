@@ -10,9 +10,9 @@ class CrownstoneNode extends Sim.Crownstone {
 let sim = new Sim.MeshSimulator()
 
 // Just by adding this line, any changes you make to the topology in the GUI are stored in this file for future usage.
-sim.allowNewTopology(path.join(__dirname,'./double_string.json'))
-sim.setTopologyFromFile(path.join(__dirname,'./double_string.json'), {CROWNSTONE: CrownstoneNode})
+sim.allowNewTopology(path.join(__dirname,'./case1.json'))
+sim.setTopologyFromFile(path.join(__dirname,'./case1.json'), {CROWNSTONE: CrownstoneNode})
 sim.waitForConnection().then(() => {
-  sim.run(500)
+  sim.run(50)
 })
 // Gui does the rest.

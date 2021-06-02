@@ -1,4 +1,4 @@
-function parseStatistics(sim, print = true) {
+function parseStatistics(sim, type="ASSET", print = true) {
   let summary = {
     averageDistanceLoss: {},
     totalAdvertisementsSent:   0,
@@ -22,7 +22,6 @@ function parseStatistics(sim, print = true) {
   // get hop levels
   let hopMap = getHopMap(topology, hubAddress);
 
-
   let macAddressMap = {}
   for (let node of topology.nodes) {
     macAddressMap[node.macAddress] = node.crownstoneId
@@ -35,7 +34,13 @@ function parseStatistics(sim, print = true) {
   for (let items of hopMap) {
     if (items.length > 0) { hopAverages[hopCount] = [] };
     for (let nodeAddress of items) {
-      let loss = (100-getSuccessRate(statistics, hubAddress, nodeAddress)*100);
+      let loss;
+      if (type === "ASSET") {
+        loss = (100-getAssetTrackingSuccessRate(statistics, hubAddress, nodeAddress)*100);
+      }
+      else {
+        loss = (100-getMeshSuccessRate(statistics, hubAddress, nodeAddress)*100);
+      }
       hopAverages[hopCount].push(loss);
       // report(
       //   "Distance:",hopCount,
@@ -85,7 +90,15 @@ module.exports = parseStatistics;
 
 
 
-function getSuccessRate(statistics, hubAddress, nodeAddress) {
+function getAssetTrackingSuccessRate(statistics, hubAddress, nodeAddress) {
+  let hubStats = statistics[hubAddress];
+  if (hubStats.meshBroadcasts.received.senders[nodeAddress]) {
+    return hubStats.assetTrackingPropagation.senders[nodeAddress].count / hubStats.assetTrackingPropagation.senders[nodeAddress].outOf
+  }
+  return -1
+}
+
+function getMeshSuccessRate(statistics, hubAddress, nodeAddress) {
   let hubStats = statistics[hubAddress];
   if (hubStats.meshBroadcasts.received.senders[nodeAddress]) {
     return hubStats.assetTrackingPropagation.senders[nodeAddress].count / hubStats.assetTrackingPropagation.senders[nodeAddress].outOf

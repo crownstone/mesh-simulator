@@ -206,4 +206,10 @@ export class MeshSimulator {
   report() {
     return this.statistics.nodes;
   }
+
+  destroy() {
+    this.statistics.reset();
+    this.network.reset();
+    this.network.clearTopology();
+  }
 }

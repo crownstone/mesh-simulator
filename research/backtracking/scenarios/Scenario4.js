@@ -20,7 +20,7 @@ async function run(topology, runTime = 500, preprocessingTime = 10, print = true
   }
   await sim.run(runTime, preprocessingTime);
   let summary = parseStatistics(sim, print)
-
+  sim.destroy()
 
   if (useGUI) {
     process.exit()

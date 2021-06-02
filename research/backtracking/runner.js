@@ -1,7 +1,16 @@
 const path = require("path")
 const fs = require("fs")
 
-let toplogy = path.join(__dirname, './topologies/double_string.json')
+// discover all topologies in the topologies folder
+let topologyDir = fs.readdirSync(path.join(__dirname,'./topologies')).sort()
+let topologies = [];
+for (let topology of topologyDir) {
+  if (path.extname(topology) === '.json') {
+    topologies.push({name: topology.replace(".json", ''), path: path.join(__dirname, './topologies', topology)})
+  }
+}
+
+
 
 // discover all scenarios in the scenarios folder
 let scenarioDir = fs.readdirSync(path.join(__dirname,'./scenarios'))
@@ -15,25 +24,32 @@ for (let scenarioItem of scenarioDir) {
 // sort by given names, not filenames.
 scenarios.sort((a,b) => { return a.name > b.name ? 1 : -1})
 
+
 async function run() {
   let data = {};
   let runtime = 1000;
-  let preprocessingTime = 10;
+  let preprocessingTime = 50;
 
-  for (let scenario of scenarios) {
-    console.log("Starting", scenario.name);
-    data[scenario.name] = await scenario.runner(toplogy, runtime, preprocessingTime);
+  for (let topology of topologies) {
+    data[topology.name] = {};
+    for (let scenario of scenarios) {
+      console.log("For topology", topology.name, "running", scenario.name,'...');
+      data[topology.name][scenario.name] = await scenario.runner(topology.path, runtime, preprocessingTime);
+    }
   }
 
-  getEasyExcelFormat(data)
+  for (let topology of topologies) {
+    getEasyExcelFormat(data[topology.name], topology.name + '.csv')
+  }
 }
 
-function getEasyExcelFormat(data) {
+function getEasyExcelFormat(data, filename) {
   let line = 'Loss% ,Distance 1, Distance 2, Distance 3, Distance 4, Distance 5\n'
   let lineCount = 1;
   for (let scenario in data) {
     line += scenario + ","
-    for (let i = 1; i < 6; i++) {
+    for (let i = 1; i < 100; i++) {
+      if (data[scenario].averageDistanceLoss[i] === undefined) { break }
       line += data[scenario].averageDistanceLoss[i].toFixed(2) + ','
     }
     line += "\n";
@@ -59,8 +75,9 @@ function getEasyExcelFormat(data) {
   }
   line += '\n'
 
-  console.log("Writing results to ", path.join(__dirname, './data.csv'))
-  fs.writeFileSync(path.join(__dirname, './data.csv'), line);
+  let filePath = path.join(__dirname, filename);
+  console.log("Writing results to ", filePath)
+  fs.writeFileSync(filePath, line);
 }
 
 
