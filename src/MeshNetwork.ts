@@ -25,13 +25,12 @@ export class MeshNetwork {
   }
 
   runFor(seconds: number) {
-    console.time("simulate")
+    console.time("Simulation took")
     console.log("Start simulating for", seconds, "seconds");
     return new Promise<void>((resolve, reject) => {
       this.timer.continue()
       this.timer.setTimeout(() => {
-        console.log("Simulation completed.")
-        console.timeEnd("simulate");
+        console.timeEnd("Simulation took");
         this.timer.pause();
         resolve();
       }, seconds*1000);
@@ -90,15 +89,15 @@ export class MeshNetwork {
   }
 
   /**
-   * This method uses the mesh-repeat implementation. Each node which receives this message will repeat a relay with the same amount of repeats.
-   * A repeat value of 1 will send 2 messages in total.
+   * This method uses the mesh-repeat implementation. Each node which receives this message will transmit a relay with the same amount of transmissions.
+   * A transmissions value of 2 will send 2 messages in total.
    * @param sender
    * @param content
    * @param ttl
-   * @param repeats
+   * @param transmissions
    */
-  broadcast(sender: crownstoneId, content : wrappedMessage, ttl: number, repeats: number, target: crownstoneId = null) {
-    if (ttl === undefined || repeats === undefined) { throw "TTL AND REPEATS/TRANSMISSIONS IS REQUIRED"}
+  broadcast(sender: crownstoneId, content : wrappedMessage, ttl: number, transmissions: number, target: crownstoneId = null) {
+    if (ttl === undefined || transmissions === undefined) { throw "TTL AND TRANSMISSIONS IS REQUIRED"}
 
     let senderMacAddress = this.nodeIdMap[sender];
     if (!senderMacAddress) {
@@ -111,40 +110,25 @@ export class MeshNetwork {
 
     EventBus.emit("MeshBroadcastQueued", {
       sender: senderMacAddress,
-      messageId: content.id,
-      ttl, repeats
+      message: content,
+      ttl, transmissions
     });
 
     for (let connection of connections) {
       if (this.nodes[connection.to].isCrownstone) {
-        for (let i = 0; i <= repeats; i++) {
-          let success = this._transmit("MESH_BROADCAST", sender, senderMacAddress, connection.to, connection.rssi, content, ttl, repeats, target);
+        for (let i = 0; i < transmissions; i++) {
+          let success = this._transmit("MESH_BROADCAST", sender, senderMacAddress, connection.to, connection.rssi, content, ttl, transmissions, target);
           EventBus.emit("MeshBroadcastIndividual", {
             sender: senderMacAddress,
             receiver: connection.to,
             success,
-            messageId: content.id,
-            ttl, repeats
+            message: content,
+            ttl, transmissions
           });
         }
       }
     }
   }
-
-  // sendTargetedMessage(sender: crownstoneId, target: crownstoneId, content : wrappedMessage, ttl: number, repeats: number) {
-  //   let senderMacAddress = this.nodeIdMap[sender];
-  //   if (!senderMacAddress) {
-  //     console.warn("Something without a macAddress tried to send a mesh message");
-  //     throw "NO_MAC_ADDRESS";
-  //   }
-  //   let connections = this.connectionMap[senderMacAddress] ?? [];
-  //   for (let connection of connections) {
-  //     for (let i = 0; i <= repeats; i++) {
-  //       let success = this._transmit("MESH_BROADCAST", sender, senderMacAddress, connection.to, connection.rssi, content, ttl, repeats, target);
-  //
-  //     }
-  //   }
-  // }
 
 
   advertise(senderMacAddress: macAddress, content: wrappedMessage) {
@@ -155,7 +139,7 @@ export class MeshNetwork {
         sender: senderMacAddress,
         receiver: connection.to,
         success,
-        messageId: content.id
+        message: content,
       });
     }
   }
@@ -169,7 +153,7 @@ export class MeshNetwork {
     rssi: {37: number, 38: number, 39: number},
     content: wrappedMessage,
     ttl: number,
-    repeats: number,
+    transmissions: number,
     target : crownstoneId = null) {
     // mark this message as handled by the sender. This would result in no incorrect roundtrips.
     this.nodes[sentBy].handled_messages[content.id] = true;
@@ -193,10 +177,9 @@ export class MeshNetwork {
         source: source,
         sender: sentBy,
         receiver: to,
-        relayId: content.relayId,
-        messageId: content.id,
+        message: content,
         messageWillFail: messageWillFail,
-        ttl, repeats
+        ttl, transmissions
       });
       return;
     }
@@ -207,9 +190,8 @@ export class MeshNetwork {
         source: source,
         sender: sentBy,
         receiver: to,
-        relayId: content.relayId,
-        messageId: content.id,
-        ttl, repeats
+        message: content,
+        ttl, transmissions
       });
       return false;
     }
@@ -229,16 +211,18 @@ export class MeshNetwork {
               source: source,
               sender: sentBy,
               receiver: to,
-              relayId: content.relayId,
-              messageId: content.id,
+              message: content,
               path: [...content.path, to],
-              ttl, repeats
+              ttl, transmissions
             });
-            this.nodes[to].handleMeshMessage(source, sentBy, content.data, rssiValue, ttl, repeats);
+            this.nodes[to].handleMeshMessage(source, sentBy, content.data, rssiValue, ttl, transmissions);
+          }
+          if (this.nodes[to].crownstoneId == 1) {
+            // console.log("sent from", this.nodes[sentBy].crownstoneId, "to", this.nodes[to].crownstoneId, ttl)
           }
           let newTTL = ttl-1;
-          if (newTTL > 0) {
-            this._relay(source, this.nodes[to].macAddress, {...content}, newTTL, repeats, target);
+          if (newTTL > 0.5) {
+            this._relay(source, this.nodes[to].macAddress, {...content}, newTTL, transmissions, target);
           }
         }
       }
@@ -247,32 +231,36 @@ export class MeshNetwork {
     return true;
   }
 
-  _relay(source: crownstoneId, senderMacAddress: macAddress, content : wrappedMessage, ttl: number, repeats: number, target: crownstoneId) {
+  _relay(source: crownstoneId, senderMacAddress: macAddress, content : wrappedMessage, ttl: number, transmissions: number, target: crownstoneId) {
     let connections = this.connectionMap[senderMacAddress] ?? [];
-    if (this.nodes[senderMacAddress].allowMeshRelay(source, target, ttl) === false) {
+
+    // set a new relay Id.
+    content.relayId = Util.getUUID();
+    content.path = [...content.path];
+    content.path.push(senderMacAddress);
+
+    let relayIsAllowed = this.nodes[senderMacAddress].allowMeshRelay(source, target, ttl);
+    if (!relayIsAllowed) {
       EventBus.emit("MeshRelayDenied", {
         source: source,
         deniedBy: senderMacAddress,
         target: target,
-        messageId: content.id,
-        ttl, repeats
+        message: content,
+        ttl, transmissions
       });
       return;
     }
-    content.relayId = Util.getUUID();
-    content.path = [...content.path];
-    content.path.push(senderMacAddress);
+
     for (let connection of connections) {
       if (this.nodes[connection.to].isCrownstone) {
-        for (let i = 0; i <= repeats; i++) {
-          let success = this._transmit("MESH_BROADCAST", source, senderMacAddress, connection.to, connection.rssi, content, ttl, repeats);
+        for (let i = 0; i < transmissions; i++) {
+          let success = this._transmit("MESH_BROADCAST", source, senderMacAddress, connection.to, connection.rssi, content, ttl, transmissions);
           EventBus.emit("MeshRelay", {
             sender: senderMacAddress,
             receiver: connection.to,
-            relayId: content.relayId,
             success,
-            messageId: content.id,
-            ttl, repeats
+            message: content,
+            ttl, transmissions
           });
         }
       }

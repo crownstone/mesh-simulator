@@ -77,9 +77,10 @@ There are a few methods you can override just like the example.
 >### `cleanup()`
 > This is called for you when the simulation ends. You can use it to clean up any subscribers.
 
->### `broadcast(data: message, ttl: number, repeats)`
-> Use this to send a (singlepart) message over the mesh. The data can be anything you want
-> Repeats here is the mesh-repeat method. This is not used in Crownstone (at the moment). We use burst repeat. See next.
+>### `broadcast(data: message, ttl: number, transmissions: number)`
+> Use this to send a (singlepart) message over the mesh. The data can be anything you want.
+> Transmissions here uses the mesh-repeat method. This means that each node that receives a broadcast with this amount of transmissions,
+> they will also transmit it <number of transmissions> times when relaying. This is not used in Crownstone (at the moment). We use burst repeat. See next.
 
 
 >### `broadcastBurst(data: message, ttl: number, transmissions: number)`
@@ -92,13 +93,13 @@ There are a few methods you can override just like the example.
 >### `handleAdvertisement(from: macAddress, data, rssi: number)`
 > You use this to respond to ble advertisements.
 
->### `handleMeshMessage(source: crownstoneId, sentBy: macAddress, data, rssi: number, ttl: number, repeats: number)`
+>### `handleMeshMessage(source: crownstoneId, sentBy: macAddress, data, rssi: number, ttl: number, transmissions: number)`
 > You get to handle a mesh message that you received sentBy macaddress. It originated from the source crownstoneId (number).
 
 
 >### `configureQueue(options: {maxSize?: number, flushCount?: number, tickDurationMs?: number})`
 > You can configure the mesh message queue. Each mesh message is loaded into the queue. Each tick it will transmit <flushCount> messages.
-> If you try to load more messages than maxSize allows, they will be discarded. The amount of repeats or transmissions does not matter for the queue maxSize.
+> If you try to load more messages than maxSize allows, they will be discarded. The amount of transmissions does not matter for the queue maxSize.
 > Default values are: 
 > - maxSize = 20
 > - flushCount = 3

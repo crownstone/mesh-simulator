@@ -59,19 +59,19 @@ export class MeshNode {
   }
 
 
-  broadcast(data: message, ttl: number, repeats, target: crownstoneId = null) {
-    if (ttl === undefined || repeats === undefined) { throw "TTL AND REPEATS IS REQUIRED"}
+  broadcast(data: message, ttl: number, transmissions, target: crownstoneId = null) {
+    if (ttl === undefined || transmissions === undefined) { throw "TTL AND REPEATS IS REQUIRED"}
 
     if (this.mesh) {
       let message = this._wrapMessage(data);
       EventBus.emit("MeshBroadcastStarted", {
         sender: this.macAddress,
-        messageId: message.id,
-        ttl, repeats: repeats
+        message: message,
+        ttl, transmissions
       });
 
       this._addToQueue(() => {
-        this.mesh.broadcast(this.crownstoneId, message, ttl, repeats, target)
+        this.mesh.broadcast(this.crownstoneId, message, ttl, transmissions, target)
       });
     }
   }
@@ -83,12 +83,12 @@ export class MeshNode {
       let message = this._wrapMessage(data);
       EventBus.emit("MeshBroadcastStarted", {
         sender: this.macAddress,
-        messageId: message.id,
-        ttl, repeats: transmissions
+        message: message,
+        ttl, transmissions
       });
 
       this._addToQueue(() => {
-        this.mesh.broadcast(this.crownstoneId, message, ttl, 0, target);
+        this.mesh.broadcast(this.crownstoneId, message, ttl, 1, target);
       }, transmissions);
     }
   }
@@ -131,7 +131,7 @@ export class MeshNode {
   }
 
 
-  handleMeshMessage(source: crownstoneId, sentBy: macAddress, data, rssi: number, ttl: number, repeats: number) {
+  handleMeshMessage(source: crownstoneId, sentBy: macAddress, data, rssi: number, ttl: number, transmissions: number) {
     // overwrite by child node
   }
 

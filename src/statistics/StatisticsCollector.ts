@@ -9,7 +9,8 @@ export class StatisticsCollector {
   nodes : StatisticsData = {};
   messageStartedHistory = {};
   messageHistory = {};
-  relayDuplicateCheck = {};
+  usefulRelays = {};
+
   subscriptions = [];
 
   reset() {
@@ -19,7 +20,7 @@ export class StatisticsCollector {
 
     this.messageStartedHistory = {};
     this.messageHistory = {};
-    this.relayDuplicateCheck = {};
+    this.usefulRelays = {};
 
     this.subscriptions.forEach((cleanup) => { cleanup(); });
     this.subscriptions = [];
@@ -43,17 +44,32 @@ export class StatisticsCollector {
     this.subscriptions.push(EventBus.on("QueueOverflow",                this.handleQueueOverflow.bind(this)))
   }
 
+  _checkToIgnore(data: any) : boolean {
+    if (typeof data === 'object') {
+      if (data.message?.data?._ignoreForStatistics === true) {
+        return true;
+      }
+    }
+    return false;
+  }
+
   handleQueueOverflow(data: MeshQueueOverflowEvent) {
+    if (this._checkToIgnore(data)) { return };
+
     let item = this._ensureNode(data.address);
     item.meshBroadcasts.queueOverflow.count += 1;
   }
 
   handleRelayDenied(data: MeshRelayDeniedEvent) {
+    if (this._checkToIgnore(data)) { return };
+
     let item = this._ensureNode(data.deniedBy);
     item.meshBroadcasts.blocked.count += 1;
   }
 
   handleBroadcastSent(data: MeshBroadcastEvent) {
+    if (this._checkToIgnore(data)) { return };
+
     let item = this._ensureNode(data.sender);
     item.meshBroadcasts.sent.count += 1;
     this._processReceiver(item.meshBroadcasts.sent.receivers, data);
@@ -61,20 +77,24 @@ export class StatisticsCollector {
 
 
   handleBroadcastStarted(data: MeshBroadcastStartedEvent) {
+    if (this._checkToIgnore(data)) { return };
+
     let item = this._ensureNode(data.sender);
-    if (this.messageStartedHistory[data.sender][data.messageId] !== true) {
+    if (this.messageStartedHistory[data.sender][data.message.id] !== true) {
       item.meshBroadcasts.started.unique += 1;
-      this.messageStartedHistory[data.sender][data.messageId] = true;
+      this.messageStartedHistory[data.sender][data.message.id] = true;
     }
     item.meshBroadcasts.started.count += 1;
   }
 
   handleBroadcastQueued(data: MeshBroadcastQueuedEvent) {
+    if (this._checkToIgnore(data)) { return };
+
     let item = this._ensureNode(data.sender);
-    if (this.messageHistory[data.sender][data.messageId] !== true) {
+    if (this.messageHistory[data.sender][data.message.id] !== true) {
       item.meshBroadcasts.queued.unique += 1;
       item.meshBroadcasts.sent.unique += 1;
-      this.messageHistory[data.sender][data.messageId] = true;
+      this.messageHistory[data.sender][data.message.id] = true;
     }
     item.meshBroadcasts.queued.count += 1;
   }
@@ -85,11 +105,13 @@ export class StatisticsCollector {
    * @param data
    */
   handleDuplicateReceived(data: MeshBroadcastDuplicateEvent) {
+    if (this._checkToIgnore(data)) { return };
+
     let item = this._ensureNode(data.sender);
     if (item.meshBroadcasts.sentDuplicates.receivers[data.receiver] === undefined) {
       item.meshBroadcasts.sentDuplicates.receivers[data.receiver] = [];
     }
-    item.meshBroadcasts.sentDuplicates.receivers[data.receiver].push(data.relayId)
+    item.meshBroadcasts.sentDuplicates.receivers[data.receiver].push(data.message.relayId);
   }
 
   /**
@@ -100,12 +122,21 @@ export class StatisticsCollector {
    * @param data
    */
   handleMessageFailed(data: MeshBroadcastReceivedEvent) {
-    delete this.relayDuplicateCheck[data.relayId];
+    if (this._checkToIgnore(data)) { return };
+
+    if (data.message.relayId) {
+      this.usefulRelays[data.message.relayId] = true;
+    }
   }
 
   handleMessageReceived(data: MeshBroadcastReceivedEvent) {
+    if (this._checkToIgnore(data)) { return };
+
     let item = this._ensureNode(data.receiver);
-    delete this.relayDuplicateCheck[data.relayId];
+
+    if (data.message.relayId) {
+      this.usefulRelays[data.message.relayId] = true;
+    }
 
     let sourceAddress = this.nodeIdMap[data.source];
     if (item.meshBroadcasts.received.senders[sourceAddress] === undefined) {
@@ -121,10 +152,12 @@ export class StatisticsCollector {
 
 
   handleAdvertisementSent(data: AdvertisementEvent) {
+    if (this._checkToIgnore(data)) { return };
+
     let item = this._ensureNode(data.sender);
-    if (this.messageHistory[data.sender][data.messageId] !== true) {
+    if (this.messageHistory[data.sender][data.message.id] !== true) {
       item.advertisements.sent.unique += 1;
-      this.messageHistory[data.sender][data.messageId] = true;
+      this.messageHistory[data.sender][data.message.id] = true;
     }
     item.advertisements.sent.count += 1;
     this._processReceiver(item.advertisements.sent.receivers, data);
@@ -140,11 +173,12 @@ export class StatisticsCollector {
 
 
   handleMeshRelay(data: MeshRelayEvent) {
+    if (this._checkToIgnore(data)) { return };
+
     let item = this._ensureNode(data.sender);
-    this.relayDuplicateCheck[data.relayId] = true;
-    if (this.messageHistory[data.sender][data.messageId] !== true) {
+    if (this.messageHistory[data.sender][data.message.id] !== true) {
       item.meshBroadcasts.relayed.unique += 1;
-      this.messageHistory[data.sender][data.messageId] = true;
+      this.messageHistory[data.sender][data.message.id] = true;
     }
     item.meshBroadcasts.relayed.count += 1;
     this._processReceiver(item.meshBroadcasts.relayed.receivers, data);
@@ -235,7 +269,7 @@ export class StatisticsCollector {
         let ids = mesh.sentDuplicates.receivers[receiverAddress];
         for (let relayId of ids) {
           // if this relayId is still in the check list, this message has not been delivered anywhere.
-          if (this.relayDuplicateCheck[relayId] === true) {
+          if (this.usefulRelays[relayId] !== true) {
             duplicateMap[relayId] = true;
           }
         }

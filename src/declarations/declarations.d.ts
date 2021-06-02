@@ -15,16 +15,16 @@ interface AdvertisementEvent {
   sender: macAddress,
   receiver: macAddress,
   success: boolean,
-  messageId: string,
+  message: wrappedMessage,
 }
 
 interface MeshBroadcastEvent {
   sender: macAddress,
   receiver: macAddress,
   success: boolean,
-  messageId: string,
+  message: wrappedMessage,
   ttl: number,
-  repeats: number
+  transmissions: number
 }
 interface MeshQueueOverflowEvent {
   address: macAddress,
@@ -35,16 +35,16 @@ interface MeshRelayDeniedEvent {
   source: crownstoneId,
   deniedBy: macAddress,
   target: crownstoneId,
-  messageId: string,
+  message: wrappedMessage,
   ttl : number,
-  repeats: number
+  transmissions: number
 }
 
 interface MeshBroadcastStartedEvent {
   sender: macAddress,
-  messageId: string,
+  message: wrappedMessage,
   ttl: number,
-  repeats: number
+  transmissions: number
 }
 type MeshBroadcastQueuedEvent = MeshBroadcastStartedEvent;
 
@@ -52,10 +52,9 @@ interface MeshRelayEvent {
   sender: macAddress,
   receiver: macAddress,
   success: boolean,
-  relayId: string,
-  messageId: string,
+  message: wrappedMessage,
   ttl: number,
-  repeats: number
+  transmissions: number
 }
 
 interface MeshBroadcastDuplicateEvent {
@@ -63,11 +62,10 @@ interface MeshBroadcastDuplicateEvent {
   sender: macAddress,
   receiver: macAddress,
   success: boolean,
-  relayId: string,
-  messageId: string,
+  message: wrappedMessage,
   messageWillFail: boolean,
   ttl: number,
-  repeats: number
+  transmissions: number
 }
 
 interface MeshBroadcastReceivedEvent {
@@ -75,11 +73,10 @@ interface MeshBroadcastReceivedEvent {
   sender: macAddress,
   receiver: macAddress,
   success: boolean,
-  relayId: string,
-  messageId: string,
+  message: wrappedMessage,
   path: macAddress[],
   ttl: number,
-  repeats: number
+  transmissions: number
 }
 
 
@@ -144,7 +141,7 @@ interface InputTopology {
 }
 
 interface InputTopologyNode extends InputTopologyBaseNode {
-  crownstoneId?: number
+  crownstoneId?: number,
 }
 
 interface InputTopologyAssetNode extends InputTopologyBaseNode {

@@ -1,4 +1,20 @@
-function parseStatistics(sim) {
+function parseStatistics(sim, print = true) {
+  let summary = {
+    averageDistanceLoss: {},
+    totalAdvertisementsSent:   0,
+    totalMessagesSent:         0,
+    totalMessagesOverMesh:     0,
+    totalMessagesRelayed:      0,
+    totalMessagesDuplicate:    0,
+    totalMessagesDroppedQueue: 0,
+    totalMessageRelaysBlocked: 0,
+  }
+  let report = function() {
+    if (print) {
+      console.log.apply(this, arguments);
+    }
+  }
+
   // group nodes (type Crownstone) into hop layers from the hub.
   let topology = sim.topology;
 
@@ -12,13 +28,6 @@ function parseStatistics(sim) {
     macAddressMap[node.macAddress] = node.crownstoneId
   }
 
-  let totalAdvertisementsSent   = 0;
-  let totalMessagesSent         = 0;
-  let totalMessagesOverMesh     = 0;
-  let totalMessagesRelayed      = 0;
-  let totalMessagesDuplicate    = 0;
-  let totalMessagesDroppedQueue = 0;
-  let totalMessageRelaysBlocked = 0;
 
   let statistics = sim.report();
   let hopCount = 0;
@@ -28,11 +37,11 @@ function parseStatistics(sim) {
     for (let nodeAddress of items) {
       let loss = (100-getSuccessRate(statistics, hubAddress, nodeAddress)*100);
       hopAverages[hopCount].push(loss);
-      console.log(
-        "Distance:",hopCount,
-        "CrownstoneId:", macAddressMap[nodeAddress],
-        "Loss:", loss.toFixed(2),"%"
-      );
+      // report(
+      //   "Distance:",hopCount,
+      //   "CrownstoneId:", macAddressMap[nodeAddress],
+      //   "Loss:", loss.toFixed(2),"%"
+      // );
     }
     hopCount++;
   }
@@ -42,33 +51,38 @@ function parseStatistics(sim) {
     for (let value of hopAverages[hopCount]) {
       sum += value
     }
-    console.log(
-      "Distance:",hopCount,
-      "Average Loss:", (sum/hopAverages[hopCount].length).toFixed(2),"%"
+    summary.averageDistanceLoss[hopCount] = sum/hopAverages[hopCount].length;
+    report(
+      "Distance:", hopCount,
+      "Average Loss:", (sum / hopAverages[hopCount].length).toFixed(2), "%"
     );
   }
 
   for (let nodeAddress in statistics) {
     let stats = statistics[nodeAddress];
-    totalAdvertisementsSent += stats.advertisements.sent.unique;
-    totalMessagesSent += stats.meshBroadcasts.sent.unique;
-    totalMessagesRelayed += stats.meshBroadcasts.relayed.unique;
-    totalMessagesDuplicate += stats.meshBroadcasts.sentDuplicates.count;
-    totalMessagesDroppedQueue += stats.meshBroadcasts.queueOverflow.count;
-    totalMessageRelaysBlocked += stats.meshBroadcasts.blocked.count;
-    totalMessagesOverMesh += stats.meshBroadcasts.sent.unique + stats.meshBroadcasts.relayed.unique;
+    summary.totalAdvertisementsSent += stats.advertisements.sent.unique;
+    summary.totalMessagesSent += stats.meshBroadcasts.sent.unique;
+    summary.totalMessagesRelayed += stats.meshBroadcasts.relayed.unique;
+    summary.totalMessagesDuplicate += stats.meshBroadcasts.sentDuplicates.count;
+    summary.totalMessagesDroppedQueue += stats.meshBroadcasts.queueOverflow.count;
+    summary.totalMessageRelaysBlocked += stats.meshBroadcasts.blocked.count;
+    summary.totalMessagesOverMesh += stats.meshBroadcasts.sent.unique + stats.meshBroadcasts.relayed.unique;
   }
 
-  console.log("Total messages over mesh:          ", totalMessagesOverMesh);
-  console.log("Total messages sent:               ", totalMessagesSent);
-  console.log("Total messages relayed:            ", totalMessagesRelayed);
-  console.log("Total messages relayed for nothing:", totalMessagesDuplicate);
-  console.log("Total messages dropped by queue:   ", totalMessagesDroppedQueue);
-  console.log("Total message relays blocked:      ", totalMessageRelaysBlocked);
-  console.log("Total advertisements sent:         ", totalAdvertisementsSent);
+
+  report("Total messages over mesh:          ", summary.totalMessagesOverMesh);
+  report("Total messages sent:               ", summary.totalMessagesSent);
+  report("Total messages relayed:            ", summary.totalMessagesRelayed);
+  report("Total messages relayed for nothing:", summary.totalMessagesDuplicate);
+  report("Total message relays blocked:      ", summary.totalMessageRelaysBlocked);
+  report("Total messages dropped by queue:   ", summary.totalMessagesDroppedQueue);
+  report("Total advertisements sent:         ", summary.totalAdvertisementsSent);
+
+  return summary;
 }
 
 module.exports = parseStatistics;
+
 
 
 function getSuccessRate(statistics, hubAddress, nodeAddress) {
