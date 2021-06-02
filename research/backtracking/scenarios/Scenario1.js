@@ -28,4 +28,11 @@ async function run(topology, runTime = 500, preprocessingTime = 10, print = true
 }
 
 
-module.exports = run;
+module.exports = {
+  name: 'Scenario 1',
+  description:`The first scenario has TTL=10 and a burst count of 1.
+This means a node which receives an advertisement will send 1 message into the mesh.
+Once a node receives it, it will relay it only once.
+  `,
+  runner: run
+};

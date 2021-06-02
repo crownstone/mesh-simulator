@@ -1,5 +1,4 @@
 const Sim = require("../../../dist")
-const path = require("path");
 const parseStatistics = require("../util/analyse")
 const { CrownstoneBackTrackerMoreHopsOptimized, HubBackTrackerOptimized } = require("../nodes/backtracking")
 
@@ -39,7 +38,12 @@ async function run(topology, runTime = 500, preprocessingTime = 10, print = true
   }
 }
 
-
-module.exports = run;
+module.exports = {
+  name: 'Scenario 5',
+  description:`Same as 4, but we will now set the burst transmissions to 2. So each advertisement a node receives,
+it will send 2 messages into the mesh in quick succession.
+A relay will still transmit 1 message so this remains the same as scenario 4.`,
+  runner: run
+};
 
 

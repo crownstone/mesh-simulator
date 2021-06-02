@@ -1,5 +1,4 @@
 const Sim = require("../../../dist")
-const path = require("path");
 const parseStatistics = require("../util/analyse")
 const { CrownstoneBackTrackerMoreHopsOptimized, HubBackTrackerOptimized } = require("../nodes/backtracking")
 
@@ -40,8 +39,13 @@ async function run(topology, runTime = 500, preprocessingTime = 10, print = true
 }
 
 
-module.exports = run;
-
+module.exports = {
+  name: 'Scenario 7',
+  description:`We will do the same as scenario 6,
+but we revert the TTL of the hub messages
+back to the minimum required (as in 2).`,
+  runner: run
+};
 
 
 

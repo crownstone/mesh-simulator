@@ -30,4 +30,11 @@ async function run(topology, runTime = 500, preprocessingTime = 10, print = true
 }
 
 
-module.exports = run;
+module.exports = {
+  name: 'Scenario 2',
+  description:`We now implement backtracking, so each node only uses the TTL required to reach the hub.
+Every second the hub sends a message out to the mesh with repeat (mesh repeat)
+2 and ttl 20 to let the rest know where it is.
+The ttl is averaged exponentially with factor 0.2 and ceiled.`,
+  runner: run
+};

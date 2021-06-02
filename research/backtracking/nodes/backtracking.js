@@ -2,7 +2,7 @@ const Sim = require("../../../dist")
 
 class HubBackTracker extends Sim.Hub {
   start() {
-    this.meshTimer.setInterval(() => { this.broadcast({_ignoreForStatistics: true, data:"IM_A_HUB"}, 20, 3); }, 1000)
+    this.meshTimer.setInterval(() => { this.broadcast({_ignoreForStatistics: true, data:"IM_A_HUB"}, 20, 2); }, 1000)
   }
 }
 

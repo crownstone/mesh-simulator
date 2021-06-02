@@ -1,5 +1,4 @@
 const Sim = require("../../../dist")
-const path = require("path");
 const parseStatistics = require("../util/analyse")
 const { CrownstoneBackTrackerMoreHops, HubBackTracker } = require("../nodes/backtracking")
 
@@ -29,4 +28,8 @@ async function run(topology, runTime = 500, preprocessingTime = 10, print = true
 }
 
 
-module.exports = run;
+module.exports = {
+  name: 'Scenario 3',
+  description:`Same as 2, but minTTL + 1.`,
+  runner: run
+};

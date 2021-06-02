@@ -3,18 +3,25 @@ const parseStatistics = require("../util/analyse")
 const { CrownstoneBackTrackerMoreHopsOptimized, HubBackTrackerOptimized } = require("../nodes/backtracking")
 
 /**
- * Same as 3, but here we introduce message optimization.
- * Hubs do not relay and relays are only performed if it will increase the chance of the message reaching the hub.
+ * We will do the same as scenario 6,
+ * but add an additional hop to the amount of hops required to reach the hub.
  */
+
+class EditedNode extends CrownstoneBackTrackerMoreHopsOptimized {
+  handleAdvertisement(from, data, rssi) {
+    if (this.hubId !== null) {
+      this.broadcast({macAddress: from, rssi}, this.hubTTL + 2, 2, this.hubId)
+    }
+  }
+}
 
 async function run(topology, runTime = 500, preprocessingTime = 10, print = true, useGUI = false) {
   let sim = new Sim.MeshSimulator(useGUI)
   sim.setTopologyFromFile(topology,
     {
       HUB: HubBackTrackerOptimized,
-      CROWNSTONE: CrownstoneBackTrackerMoreHopsOptimized
+      CROWNSTONE: EditedNode
     })
-
   if (useGUI) {
     await sim.waitForConnection()
   }
@@ -31,9 +38,11 @@ async function run(topology, runTime = 500, preprocessingTime = 10, print = true
 }
 
 module.exports = {
-  name: 'Scenario 4',
-  description:`Same as 3, but here we introduce message optimization.
-Hubs do not relay and relays are only performed if it will increase the chance of the message reaching the hub.`,
+  name: 'Scenario 8',
+  description:`We will do the same as scenario 6,
+ but add an additional hop to the amount of hops required to reach the hub.`,
   runner: run
 };
+
+
 
