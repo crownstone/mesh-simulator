@@ -9,10 +9,15 @@ async function getData(path) {
 
     const req = https.request(path, options, (res) => {
       console.log('statusCode:', res.statusCode);
+      let data = ''
       res.on('data', (d) => {
-        let str = d.toString('utf8')
-        resolve(JSON.parse(str))
+        data += d;
       });
+
+      res.on('end', () => {
+        let str = data.toString('utf8')
+        resolve(JSON.parse(str))
+      })
     });
 
     req.end();
@@ -44,7 +49,7 @@ async function getTopology() {
     // this eliminates the back-forth edges.
     if (duplicateMap[id] === undefined) {
       duplicateMap[id] = true;
-      connections.push({from: edgeData.from, to: edgeData.to, rssi: edgeData.rssi});
+      connections.push({from: edgeData.from, to: edgeData.to, rssi: edgeData.rssi, averageRssi: average/avgCount});
     }
   }
 
@@ -58,13 +63,26 @@ async function getTopology() {
     nodes.push({id: nodeId, label: node.name, ...node, group: locationName, size: connectionSizeMap[nodeId] || 15, shape: node.type === 'CROWNSTONE_HUB' ? 'star' : 'dot'})
   }
 
-  return {nodes, connections}
+  return {nodes, connections, data}
+}
+
+
+
+async function getNetworkStatistics() {
+  let {hubUrl, token} = getHubData()
+  if (hubUrl.substr(hubUrl.length-1,1) !== "/") {
+    hubUrl += '/';
+  }
+
+  let data = await getData(hubUrl+'api/network/statistics?access_token=' + token)
+
+  return data
 }
 
 let fs = require("fs");
 let path = require("path");
 function getHubData() {
-  let dataPath = path.join(__dirname,"./hubData.json");
+  let dataPath = path.join(__dirname,"./credentials/hubData.json");
   if (fs.existsSync(dataPath) === false) {
     console.warn("Create a hubData.json before running this example.");
     process.exit();
@@ -81,4 +99,7 @@ function getEdgeId(edge) {
 
 module.exports = {
   getTopology,
+  getData,
+  getNetworkStatistics,
+  getHubData
 }

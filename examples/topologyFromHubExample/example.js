@@ -1,5 +1,5 @@
 const Sim = require("../../dist")
-const { getTopology } = require("./util")
+const { getTopology } = require("../../util")
 
 async function runExample() {
 

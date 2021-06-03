@@ -12,6 +12,11 @@ Then run the node server which will serve the GUI (if you want to use the gui)
 npm start
 ```
 
+Before you can run the examples, you need to compile the code.
+
+```angular2html
+npm run build
+```
 
 You can run the examples in /examples/ by executing the example file with node
 
