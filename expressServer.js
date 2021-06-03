@@ -4,7 +4,7 @@ const app     = express();
 
 
 app.set('port', (process.env.PORT || 3050));
-app.use(express.static(path.join(__dirname, 'GUI')))
+app.use(express.static(path.join(__dirname, 'gui')))
 
 app.get('/', function (req, res) {
   res.sendFile(path.join(__dirname, 'gui/visualizer.html'));
